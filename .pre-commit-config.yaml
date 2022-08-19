@@ -1,0 +1,79 @@
+default_language_version:
+  python: python3.9
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.1.0
+    hooks:
+      - id: check-added-large-files
+        args: ["--maxkb=400"]
+        exclude: "^()"
+      - id: check-ast # Simply check whether the files parse as valid python.
+      - id: check-json # This hook checks json files for parseable syntax.
+      - id: pretty-format-json # This hook sets a standard for formatting JSON files.
+        args: ["--autofix", "--no-sort-keys"]
+      - id: check-yaml # Check that yaml-files can be parsed.
+      - id: check-merge-conflict # Check for files that contain merge conflict strings.
+      - id: end-of-file-fixer # Ensures that a file is either empty, or ends with one newline.
+      - id: trailing-whitespace # This hook trims trailing whitespace.
+
+  - repo: https://github.com/asottile/reorder_python_imports # Autosort python imports.
+    rev: v2.6.0
+    hooks:
+      - id: reorder-python-imports
+        exclude: "__init__.py"
+
+  - repo: https://github.com/psf/black # Black auto formatting.
+    rev: 21.12b0
+    hooks:
+      - id: black
+        exclude: "^(notebooks/)"
+
+  - repo: https://gitlab.com/pycqa/flake8 # Flake8 formatting.
+    rev: 3.9.2
+    hooks:
+      - id: flake8
+        args: ["--max-line-length=100", "--ignore=E203,W503,F821,F811,F401"]
+        exclude: "^(.*/__init__.py)"
+
+  - repo: local
+    hooks:
+      - id: pylint
+        name: pylint-non-tests # test all files that are not tests.
+        entry: pylint
+        language: system
+        types: [python]
+        args:
+          [
+              "-rn",
+              "--jobs=4",
+              "--good-names=i,j,k,v,_,x,y,X,Y,X_train,X_test,df",
+              "--fail-under=8.5",
+              "--disable=similarities,logging-fstring-interpolation,import-error,wrong-import-order,C0330,logging-fstring-interpolation,E0611,E1130,W0613"
+          ]
+        exclude: "tests/"
+      - id: pylint
+        name: pylint-tests # test all files that ARE tests.
+        entry: pylint
+        language: system
+        types: [python]
+        args:
+          [
+              "-rn",
+              "--fail-under=8.5",
+              "--disable=similarities,logging-fstring-interpolation,redefined-outer-name,no-self-use,too-many-public-methods,too-few-public-methods,import-error,wrong-import-order,C0330,logging-fstring-interpolation",
+              "--good-names=i,j,k,v,_,x,y,X,Y,X_train,X_test",
+              "--jobs=4",
+          ]
+        exclude: "jazz-rnn/"
+
+  - repo: https://github.com/pycqa/pydocstyle
+    rev: 6.1.1
+    hooks:
+      - id: pydocstyle # Test all docstrings for correct syntax.
+        exclude: "tests/"
+
+  - repo: https://github.com/asottile/pyupgrade # update syntax for newer versions of python.
+    rev: v2.31.0
+    hooks:
+    -   id: pyupgrade

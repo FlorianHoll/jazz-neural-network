@@ -1,0 +1,55 @@
+# local config
+pytest.ini
+.amlignore.amltmp
+.env
+
+# temporary data
+.ipynb_aml_checkpoints/
+*.ipynb_checkpoints/
+*.amltmp
+*.pyc
+**/.empty/
+**/.vscode/
+**/.mypy_cache/
+**/__pycache__/
+
+# setuptools distribution folder
+/dist/
+/build/
+/portainer/
+
+# python egg metadata, regenerated from source files by setuptools
+/*.egg-info
+.coverage*
+
+# workspace settings
+*.idea/
+*.code-workspace
+
+# data
+*.html
+*.excel
+*.png
+*.pkl
+*.npy
+*.db
+*.h5
+*.xml
+*.mxl
+*.csv
+*.parquet
+
+# documentation builds
+doc/build
+public/
+
+# folders
+data/
+tmp/
+venv/
+
+# symlinks
+**/__pycache__
+
+# azure_pipeline access data
+.azureml/
