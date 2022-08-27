@@ -47,7 +47,7 @@ class MusicalElement:
     @property
     @abc.abstractmethod
     def pitch_height(self):
-        """Get the pitch height of the element."""
+        """Get the MIDI pitch height of the element."""
 
     @property
     @abc.abstractmethod
@@ -57,7 +57,7 @@ class MusicalElement:
     @property
     @abc.abstractmethod
     def neural_net_representation(self):
-        """Get the element in the representation for the NN."""
+        """Get the element in the representation for the neural net."""
 
     @abc.abstractmethod
     def transpose(self, steps: int):
@@ -73,7 +73,13 @@ class MusicalElement:
 
 
 class RestElement(MusicalElement):
-    """A rest element."""
+    """A rest element.
+
+    Rest elements are special elements in that they do not
+    have a pitch height; however, they still need to be
+    represented in our neural net since they are an
+    important part of music.
+    """
 
     def __init__(
         self,
@@ -176,16 +182,35 @@ class RestChord(RestElement):
 
 
 class Note(MusicalElement):
-    """A note."""
+    """A note.
+
+    :param element: The note in symbol notation, concatenated with the
+        octave of the note.
+        Valid inputs: "G4", "G#4", "Ab4"
+        Invalid inputs: 65, "Ab", "G##4", "Abb4"
+    :param duration: The duration of the note, standardized so that one
+        quarter note has a duration of 12, a half note has a duration of 6 etc.
+    :param offset: The offset of the note. The offset follows the same
+        scaling as the duration.
+    """
 
     @property
     def symbol(self) -> str:
-        """Get the symbol of the note."""
+        """Get the symbol of the note.
+
+        Since this is what was handed in the constructor, it
+        can simply be returned.
+        """
         return self._initial_representation
 
     @property
     def octave(self):
-        """Get the octave of the note."""
+        """Get the octave of the note.
+
+        Since the constructor gets the chord symbol concatenated
+        with an octave and the octave cannot be >9, the last
+        position of the symbol string is the octave.
+        """
         return int(self.symbol[-1])
 
     @property
@@ -199,7 +224,13 @@ class Note(MusicalElement):
 
     @property
     def neural_net_representation(self):
-        """Return the neural net representation of the note."""
+        """Return the neural net representation of the note.
+
+        We do not need all notes in the neural net; the softmax
+        in the output layer should be as small as possible; therefore,
+        we will subtract 4 octaves so that only sensible values
+        are given to the neural net in the first place.
+        """
         return self.pitch_height - 48
 
     def _check_if_transposing_works(self, steps: int) -> None:
@@ -245,14 +276,19 @@ class MidiNote(Note):
 
     @property
     def octave(self) -> int:
-        """Get the octave of the note."""
+        """Get the octave of the note.
+
+        Since 60 = C4, we need to do a floor division
+        and then subtract one. (e.g. 65 // 12 = 5 -1 = 4).
+        """
         return self.pitch_height // 12 - 1
 
     @property
     def symbol(self) -> str:
-        """Get the representation as a symbol."""
-        pitch = self._initial_representation
-        while pitch not in range(12):
-            pitch -= 12
-        root_note = MIDI_NUMBER_TO_NOTE_SYMBOL[pitch]
+        """Get the representation as a symbol.
+
+        For this, we need the root note, which is the modulus of 12.
+        This is concatenated with the octave to obtain the final symbol.
+        """
+        root_note = MIDI_NUMBER_TO_NOTE_SYMBOL[self.pitch_height % 12]
         return f"{root_note}{self.octave}"
