@@ -10,8 +10,8 @@ from typing import Union
 import numpy as np
 
 from rnn.music.utils import CHORD_TYPES_TO_NUMBERS
+from rnn.music.utils import functional_chord_notes_to_chord_symbol
 from rnn.music.utils import MIDI_NUMBER_TO_NOTE_SYMBOL
-from rnn.music.utils import midi_numbers_to_chord_symbol
 from rnn.music.utils import NOTE_SYMBOL_TO_NUMBER
 from rnn.music.utils import pitch_height_in_range
 
@@ -199,9 +199,10 @@ class Note(MusicalElement):
     """A note.
 
     :param element: The note in symbol notation, concatenated with the
-        octave of the note.
+        octave of the note. The octave may be a number between 0 and 8
+        (since this is the range of the keyboard).
         Valid inputs: "G4", "G#4", "Ab4"
-        Invalid inputs: 65, "Ab", "G##4", "Abb4"
+        Invalid inputs: 65, "Ab", "G##4", "Abb4", "G10"
     :param duration: The duration of the note, standardized so that one
         quarter note has a duration of 12, a half note has a duration of 6 etc.
     :param offset: The offset of the note. The offset follows the same
@@ -270,6 +271,14 @@ class Note(MusicalElement):
 class MidiNote(Note):
     """A Note in MIDI pitch height format."""
 
+    def __init__(self, element: int, duration: int = 12, offset: int = 0) -> None:
+        """Initialize the MidiNote."""
+        super().__init__(element, duration, offset)
+        if not pitch_height_in_range(element):
+            raise ValueError(
+                "Given MIDI value is outside the playable range (21 - 108)."
+            )
+
     @property
     def pitch_height(self) -> int:
         """Get the pitch height of the note."""
@@ -337,11 +346,11 @@ class Chord(MusicalElement):
 
     def octave_down(self):
         """Transpose the whole chord ."""
-        self.transpose(-12)
+        return self.transpose(-12)
 
     def octave_up(self):
         """Test."""
-        self.transpose(12)
+        return self.transpose(12)
 
     def __repr__(self):
         """Represent the chord with all relevant information."""
@@ -353,6 +362,16 @@ class Chord(MusicalElement):
 
 class MidiChord(Chord):
     """A chord in MIDI pitch height representation."""
+
+    def __init__(
+        self, element: np.ndarray, duration: int = 12, offset: int = 0
+    ) -> None:
+        """Initialize the MidiChord."""
+        super().__init__(element, duration, offset)
+        if not pitch_height_in_range(element):
+            raise ValueError(
+                "Given MIDI values are outside the playable range (21 - 108)."
+            )
 
     @property
     def pitch_height(self) -> np.ndarray:
@@ -368,5 +387,5 @@ class MidiChord(Chord):
         """
         root_note = MIDI_NUMBER_TO_NOTE_SYMBOL[self.pitch_height[0] % 12]
         note_functions = self.pitch_height - self.pitch_height[0]
-        chord_type = midi_numbers_to_chord_symbol(note_functions)
+        chord_type = functional_chord_notes_to_chord_symbol(note_functions)
         return f"{root_note}{chord_type}"

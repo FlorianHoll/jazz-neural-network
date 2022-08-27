@@ -1,4 +1,6 @@
 """Utils functions for the music package."""
+from typing import Union
+
 import numpy as np
 
 NOTE_SYMBOL_TO_NUMBER = {
@@ -60,7 +62,7 @@ def octave_in_range(octave: int) -> bool:
     return (octave >= 0) & (octave <= 8)
 
 
-def pitch_height_in_range(pitch_height: int) -> bool:
+def pitch_height_in_range(pitch_height: Union[int, np.ndarray]) -> bool:
     """Indicate whether a given pitch height is within the plausible range.
 
     MIDI pitches range from 21 to 108, with 21 representing A0 and 108 C8;
