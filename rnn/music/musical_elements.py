@@ -9,9 +9,10 @@ from typing import Union
 
 import numpy as np
 
+from rnn.music.utils import CHORD_TYPES_TO_NUMBERS
 from rnn.music.utils import MIDI_NUMBER_TO_NOTE_SYMBOL
+from rnn.music.utils import midi_numbers_to_chord_symbol
 from rnn.music.utils import NOTE_SYMBOL_TO_NUMBER
-from rnn.music.utils import octave_in_range
 from rnn.music.utils import pitch_height_in_range
 
 BASSNOTE_RANGE = [40, 64]
@@ -70,6 +71,19 @@ class MusicalElement:
     @abc.abstractmethod
     def octave_up(self):
         """Transpose the element one octave up."""
+
+    def _check_if_transposing_works(self, steps: int) -> None:
+        """Check if the transposing works.
+
+        This means checking if the new pitch height is still within
+        the sensible range.
+        """
+        new_pitch_height = self.pitch_height + steps
+        if not pitch_height_in_range(new_pitch_height):
+            raise ValueError(
+                "Cannot transpose; resulting pitch height(s) values "
+                "would be outside the playable range."
+            )
 
 
 class RestElement(MusicalElement):
@@ -233,19 +247,6 @@ class Note(MusicalElement):
         """
         return self.pitch_height - 48
 
-    def _check_if_transposing_works(self, steps: int) -> None:
-        """Check if the transposing works.
-
-        This means checking if the new pitch height is still within
-        the sensible range.
-        """
-        new_pitch_height = self.pitch_height + steps
-        if not pitch_height_in_range(new_pitch_height):
-            raise ValueError(
-                "Cannot transpose; resulting pitch height values would "
-                "be outside the playable range."
-            )
-
     def transpose(self, steps: int):
         """Transpose the note."""
         self._check_if_transposing_works(steps)
@@ -292,3 +293,80 @@ class MidiNote(Note):
         """
         root_note = MIDI_NUMBER_TO_NOTE_SYMBOL[self.pitch_height % 12]
         return f"{root_note}{self.octave}"
+
+
+class Chord(MusicalElement):
+    """A chord in symbol notation."""
+
+    @property
+    def root_note(self):
+        """Get the root note."""
+        return self.symbol[:-4]
+
+    @property
+    def chord_type(self):
+        """Get the chord type symbol."""
+        return self.symbol[-4:]
+
+    @property
+    def octave(self):
+        """Get the octaves of all notes."""
+        return self.pitch_height // 12 - 1
+
+    @property
+    def pitch_height(self):
+        """Get the pitch heights of all notes."""
+        root_note = Note(f"{self.root_note}4").pitch_height
+        functional_notes_from_root = CHORD_TYPES_TO_NUMBERS[self.chord_type]
+        return root_note + functional_notes_from_root
+
+    @property
+    def symbol(self) -> str:
+        """Get the chord symbol."""
+        return self._initial_representation
+
+    @property
+    def neural_net_representation(self):
+        """Get the neural net representation."""
+        return self.pitch_height - 48
+
+    def transpose(self, steps: int):
+        """Transpose the whole chord."""
+        self._check_if_transposing_works(steps)
+        return MidiChord(self.pitch_height + steps)
+
+    def octave_down(self):
+        """Transpose the whole chord ."""
+        self.transpose(-12)
+
+    def octave_up(self):
+        """Test."""
+        self.transpose(12)
+
+    def __repr__(self):
+        """Represent the chord with all relevant information."""
+        return (
+            f"Chord {self.symbol} (duration: {self.duration}, "
+            f"offset: {self.offset})"
+        )
+
+
+class MidiChord(Chord):
+    """A chord in MIDI pitch height representation."""
+
+    @property
+    def pitch_height(self) -> np.ndarray:
+        """Get the pitch height of the note."""
+        return self._initial_representation
+
+    @property
+    def symbol(self) -> str:
+        """Get the representation as a symbol.
+
+        For this, we need the root note, which is the modulus of 12.
+        This is concatenated with the octave to obtain the final symbol.
+        """
+        root_note = MIDI_NUMBER_TO_NOTE_SYMBOL[self.pitch_height[0] % 12]
+        note_functions = self.pitch_height - self.pitch_height[0]
+        chord_type = midi_numbers_to_chord_symbol(note_functions)
+        return f"{root_note}{chord_type}"
