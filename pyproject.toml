@@ -9,6 +9,9 @@ python = "^3.9"
 numpy = "^1.23.2"
 pandas = "^1.4.3"
 music21 = "^7.3.3"
+bs4 = "^0.0.1"
+lxml = "^4.9.1"
+pytest = "^7.1.2"
 
 [tool.poetry.dev-dependencies]
 
