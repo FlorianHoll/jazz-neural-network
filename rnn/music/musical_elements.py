@@ -9,7 +9,10 @@ from typing import Union
 
 import numpy as np
 
+from rnn.music.utils import MIDI_NUMBER_TO_NOTE_SYMBOL
+from rnn.music.utils import NOTE_SYMBOL_TO_NUMBER
 from rnn.music.utils import octave_in_range
+from rnn.music.utils import pitch_height_in_range
 
 BASSNOTE_RANGE = [40, 64]
 NOTE_RANGE = [21, 108]
@@ -30,19 +33,16 @@ class MusicalElement:
         element: Union[str, int, np.ndarray],
         duration: int = 12,
         offset: int = 0,
-        octave: int = 4,
     ) -> None:
         """Initialize the MusicalElement."""
         self._initial_representation = element
         self.duration = duration
         self.offset = offset
-        self.octave = octave
-        if isinstance(element, str):
-            if not octave_in_range(octave):
-                raise ValueError(
-                    "The given octave value is outside the plausible "
-                    "range; 0-8 are acceptable values."
-                )
+
+    @property
+    @abc.abstractmethod
+    def octave(self):
+        """Get the octave of the element."""
 
     @property
     @abc.abstractmethod
@@ -60,16 +60,16 @@ class MusicalElement:
         """Get the element in the representation for the NN."""
 
     @abc.abstractmethod
-    def transpose(self, steps):
+    def transpose(self, steps: int):
         """Transpose the element."""
 
     @abc.abstractmethod
-    def octaves_down(self, num_octaves: int = 1):
-        """Transpose the element a given amount of octaves down."""
+    def octave_down(self):
+        """Transpose the element one octave down."""
 
     @abc.abstractmethod
-    def octaves_up(self, num_octaves: int = 1):
-        """Transpose the element a given amount of octaves up."""
+    def octave_up(self):
+        """Transpose the element one octave up."""
 
 
 class RestElement(MusicalElement):
@@ -81,10 +81,19 @@ class RestElement(MusicalElement):
         offset: int = 0,
     ) -> None:
         """Initialize the RestElement."""
-        super().__init__(element="Rest", duration=duration, offset=offset, octave=0)
+        super().__init__(element="Rest", duration=duration, offset=offset)
 
     @property
-    def pitch_height(self) -> Union[int, np.ndarray]:
+    def octave(self) -> int:
+        """Return the octave.
+
+        0 is used here as a placeholder to indicate
+        that the element does not have an octave.
+        """
+        return 0
+
+    @property
+    def pitch_height(self) -> int:
         """Return the pitch height.
 
         0 is used here as a placeholder to indicate
@@ -98,14 +107,14 @@ class RestElement(MusicalElement):
         return "Rest"
 
     @property
-    def neural_net_representation(self) -> Union[int, np.ndarray]:
+    def neural_net_representation(self) -> int:
         """Return the neural net representation.
 
         Will always be 0 to indicate that this is a rest.
         """
         return 0
 
-    def transpose(self, steps):
+    def transpose(self, steps: int) -> "RestElement":
         """Transpose the rest element.
 
         Since transposing a rest element does not make
@@ -113,7 +122,7 @@ class RestElement(MusicalElement):
         """
         return self
 
-    def octaves_down(self, num_octaves: int = 1):
+    def octave_down(self, num_octaves: int = 1) -> "RestElement":
         """Transpose the rest element one octave down.
 
         Since transposing a rest element does not make
@@ -121,7 +130,7 @@ class RestElement(MusicalElement):
         """
         return self
 
-    def octaves_up(self, num_octaves: int = 1):
+    def octave_up(self, num_octaves: int = 1) -> "RestElement":
         """Transpose the rest element one octave up.
 
         Since transposing a rest element does not make
@@ -164,3 +173,86 @@ class RestChord(RestElement):
     def __repr__(self):
         """Represent the rest chord with all relevant information."""
         return f"N.C. (duration: {self.duration}, offset: {self.offset})"
+
+
+class Note(MusicalElement):
+    """A note."""
+
+    @property
+    def symbol(self) -> str:
+        """Get the symbol of the note."""
+        return self._initial_representation
+
+    @property
+    def octave(self):
+        """Get the octave of the note."""
+        return int(self.symbol[-1])
+
+    @property
+    def pitch_height(self) -> int:
+        """Get the MIDI pitch height of the note."""
+        pitch_height = NOTE_SYMBOL_TO_NUMBER[self.symbol[:-1]] + 12 * (self.octave + 1)
+        if pitch_height_in_range(pitch_height):
+            return pitch_height
+        else:
+            raise ValueError("The given note is outside the sensible range.")
+
+    @property
+    def neural_net_representation(self):
+        """Return the neural net representation of the note."""
+        return self.pitch_height - 48
+
+    def _check_if_transposing_works(self, steps: int) -> None:
+        """Check if the transposing works.
+
+        This means checking if the new pitch height is still within
+        the sensible range.
+        """
+        new_pitch_height = self.pitch_height + steps
+        if not pitch_height_in_range(new_pitch_height):
+            raise ValueError(
+                "Cannot transpose; resulting pitch height values would "
+                "be outside the playable range."
+            )
+
+    def transpose(self, steps: int):
+        """Transpose the note."""
+        self._check_if_transposing_works(steps)
+        return MidiNote(self.pitch_height + steps)
+
+    def octave_down(self):
+        """Transpose the note one octave down."""
+        return self.transpose(-12)
+
+    def octave_up(self):
+        """Tranpose the note one octave up."""
+        return self.transpose(12)
+
+    def __repr__(self):
+        """Represent the note with all relevant information."""
+        return (
+            f"Note {self.symbol} (duration: {self.duration}, " f"offset: {self.offset})"
+        )
+
+
+class MidiNote(Note):
+    """A Note in MIDI pitch height format."""
+
+    @property
+    def pitch_height(self) -> int:
+        """Get the pitch height of the note."""
+        return self._initial_representation
+
+    @property
+    def octave(self) -> int:
+        """Get the octave of the note."""
+        return self.pitch_height // 12 - 1
+
+    @property
+    def symbol(self) -> str:
+        """Get the representation as a symbol."""
+        pitch = self._initial_representation
+        while pitch not in range(12):
+            pitch -= 12
+        root_note = MIDI_NUMBER_TO_NOTE_SYMBOL[pitch]
+        return f"{root_note}{self.octave}"

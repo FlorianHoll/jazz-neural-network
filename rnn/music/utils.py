@@ -21,6 +21,10 @@ NOTE_SYMBOL_TO_NUMBER = {
     "B": 11,
 }
 
+MIDI_NUMBER_TO_NOTE_SYMBOL = {
+    value: key for key, value in NOTE_SYMBOL_TO_NUMBER.items()
+}
+
 
 def octave_in_range(octave: int) -> bool:
     """Indicate whether a given octave is within the plausible range."""
