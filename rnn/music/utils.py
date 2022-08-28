@@ -3,6 +3,26 @@ from typing import Union
 
 import numpy as np
 
+SHARPS_TO_KEY_SIGNATURE_SYMBOL = {
+    0: "C",
+    -1: "F",
+    -2: "Bb",
+    -3: "Eb",
+    -4: "Ab",
+    -5: "Db",
+    -6: "Gb",
+    1: "G",
+    2: "D",
+    3: "A",
+    4: "E",
+    5: "B",
+    6: "F#",
+}
+
+KEY_SIGNATURE_SYMBOL_TO_SHARPS = {
+    key: value for key, value in SHARPS_TO_KEY_SIGNATURE_SYMBOL.items()
+}
+
 NOTE_SYMBOL_TO_NUMBER = {
     "C": 0,
     "Db": 1,
