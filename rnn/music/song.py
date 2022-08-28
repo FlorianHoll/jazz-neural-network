@@ -69,3 +69,43 @@ class Song:
         measures = self.raw_data.findChildren("measure")
         for measure in measures:
             self._parse_one_measure(measure)
+        return self.neural_net_representation
+
+    def _augment_training_data(self) -> np.ndarray:
+        """Augment the training data by transposing to each key.
+
+        This means that the neural net will receive the training
+        data in all keys to (1.) avoid over-representation of
+        some key signatures (some key signatures are more common
+        than others in jazz) and to (2.) lead to generalization
+        (the network should understand that the relations between
+        notes and chords are the same for all keys alike.
+        """
+        augmented_note_heights = [
+            note.transpose(transpose_steps).neural_net_representation
+            for transpose_steps in range(-6, 6)
+            for note in self.music_representation
+        ]
+        return np.array(augmented_note_heights)
+
+    @property
+    def neural_net_representation(self) -> np.ndarray:
+        """Represent the song as the input format the neural net.
+
+        The notes are represented as a N*12 x 3 array where
+        N is the number of notes in the song. The notes are
+        transposed to all keys to augment the dataset.
+
+        """
+        note_heights = [
+            note.transpose(transpose_steps).neural_net_representation
+            for transpose_steps in range(-6, 6)
+            for note in self.music_representation
+        ]
+        note_durations = [
+            note.duration for _ in range(12) for note in self.music_representation
+        ]
+        note_offsets = [
+            note.offset for _ in range(12) for note in self.music_representation
+        ]
+        return np.vstack([note_heights, note_durations, note_offsets])
