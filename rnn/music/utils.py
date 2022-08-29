@@ -19,10 +19,6 @@ SHARPS_TO_KEY_SIGNATURE_SYMBOL = {
     6: "F#",
 }
 
-KEY_SIGNATURE_SYMBOL_TO_SHARPS = {
-    key: value for key, value in SHARPS_TO_KEY_SIGNATURE_SYMBOL.items()
-}
-
 NOTE_SYMBOL_TO_NUMBER = {
     "C": 0,
     "Db": 1,
@@ -54,6 +50,35 @@ CHORD_TYPES_TO_NUMBERS = {
     "dim7": np.array([0, 3, 6, 10]),
     "dom7": np.array([0, 4, 7, 10]),
 }
+
+CHORD_TYPE_TO_COMPATIBLE_CHORD = {}
+CHORD_TYPE_TO_COMPATIBLE_CHORD.update(
+    dict.fromkeys(["maj7", "major", "maj9", "maj11", "maj13", "6", ""], "maj7")
+)
+CHORD_TYPE_TO_COMPATIBLE_CHORD.update(
+    dict.fromkeys(["7", "7#9", "13", "7b9", "7b5", "b9", "9", "+"], "dom7")
+)
+CHORD_TYPE_TO_COMPATIBLE_CHORD.update(
+    dict.fromkeys(["half-diminished", "o7", "dim7", "dim", "ø7"], "dim7")
+)
+CHORD_TYPE_TO_COMPATIBLE_CHORD.update(
+    dict.fromkeys(["m7", "m9", "m6", "m11", "m13", "m(#5)"], "min7")
+)
+
+keys = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
+alternative_keys = ["B#", "Db", "D", "Eb", "Fb", "E#", "Gb", "G", "Ab", "A", "Bb", "Cb"]
+chord_types = ["maj7", "min7", "dom7", "dim7"]
+
+chords = ["N.C."] + [key + chord for key in keys for chord in chord_types]
+chords_alternative_representation = ["N.C."] + [
+    key + chord for key in alternative_keys for chord in chord_types
+]
+chords.append("N.C.")
+chorddict = {chord: i for i, chord in enumerate(chords)}
+chorddict.update(
+    {chord: i for i, chord in enumerate(chords_alternative_representation)}
+)
+CHORD_TYPES_TO_NEURAL_NET_REPRESENTATION = chorddict
 
 
 def functional_chord_notes_to_chord_symbol(chord_notes: np.ndarray) -> str:

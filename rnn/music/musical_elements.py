@@ -9,6 +9,7 @@ from typing import Union
 
 import numpy as np
 
+from rnn.music.utils import CHORD_TYPES_TO_NEURAL_NET_REPRESENTATION
 from rnn.music.utils import CHORD_TYPES_TO_NUMBERS
 from rnn.music.utils import functional_chord_notes_to_chord_symbol
 from rnn.music.utils import MIDI_NUMBER_TO_NOTE_SYMBOL
@@ -337,7 +338,7 @@ class Chord(MusicalElement):
     @property
     def neural_net_representation(self):
         """Get the neural net representation."""
-        return self.pitch_height - 48
+        return CHORD_TYPES_TO_NEURAL_NET_REPRESENTATION[self.symbol]
 
     def transpose(self, steps: int):
         """Transpose the whole chord."""
