@@ -14,7 +14,7 @@ from rnn.music.utils import CHORD_TYPE_TO_COMPATIBLE_CHORD
 from rnn.music.utils import SHARPS_TO_KEY_SIGNATURE_SYMBOL
 
 
-class Song:
+class SongParser:
     """A song that will be used to train the neural network."""
 
     def __init__(self, filename: str):
@@ -39,7 +39,6 @@ class Song:
         measures = self.raw_data.findChildren("measure")
         for measure in measures:
             self._parse_one_measure(measure)
-        return self.melody_neural_net_representation
 
     def _parse_one_measure(self, measure):
         elements = measure.findChildren(["note", "harmony"])  # find all notes.
@@ -136,22 +135,24 @@ class Song:
         ]
         return np.array(augmented_data)
 
-    @property
-    def melody_neural_net_representation(self) -> np.ndarray:
-        """Represent the song as the input format the neural net.
 
-        The notes are represented as a N*12 x 3 array where
-        N is the number of notes in the song. The notes are
-        transposed to all keys to augment the dataset.
-        """
-        note_heights = self._augment_training_data(self.melody_representation)
-        note_durations = [
-            note.duration for _ in range(12) for note in self.melody_representation
-        ]
-        note_offsets = [
-            note.offset for _ in range(12) for note in self.melody_representation
-        ]
-        return np.vstack([note_heights, note_durations, note_offsets])
+class HarmonySongParser(SongParser):
+    """Parse a song's harmony."""
+
+    def _parse_one_measure(self, measure):
+        elements = measure.findChildren(["note", "harmony"])  # find all notes.
+        # The offset is set to 0 initially and will be updated iteratively.
+        offset = 0
+        for element in elements:
+            # First, find out if the element is a note or a harmony symbol.
+            if element.name == "note":
+                note_duration = note_duration = int(element.find("duration").string)
+                # The offset must be updated to keep track of the position
+                #   of the measure that is currently being parsed.
+                offset += note_duration
+            else:
+                harmony = self._parse_one_harmony_symbol(element, offset)
+                self.harmony_representation.append(harmony)
 
     @property
     def harmony_neural_net_representation(self) -> np.ndarray:
@@ -171,3 +172,66 @@ class Song:
         chord_durations = chord_offsets_offset_by_one - chord_offsets
         chord_durations[chord_durations <= 0] += 48
         return chord_durations
+
+    def parse(self):
+        """Parse the song from the xml representation."""
+        super().parse()
+        return self.harmony_neural_net_representation
+
+
+class MelodySongParser(SongParser):
+    """Parse a song's melody."""
+
+    def _parse_one_measure(self, measure):
+        elements = measure.findChildren(["note", "harmony"])  # find all notes.
+        # The offset is set to 0 initially and will be updated iteratively.
+        offset = 0
+        current_accompanying_harmony = None
+        for element in elements:
+            # First, find out if the element is a note or a harmony symbol.
+            if element.name == "note":
+                note = self._parse_one_note(element, offset)
+                self.melody_representation.append(note)
+                self.harmony_representation.append(current_accompanying_harmony)
+                # The offset must be updated to keep track of the position
+                #   of the measure that is currently being parsed.
+                offset += note.duration
+            else:
+                current_accompanying_harmony = self._parse_one_harmony_symbol(
+                    element, offset
+                )
+
+    @property
+    def melody_neural_net_representation(self) -> np.ndarray:
+        """Represent the song as the input format the neural net.
+
+        The notes are represented as a N*12 x 3 array where
+        N is the number of notes in the song. The notes are
+        transposed to all keys to augment the dataset.
+        """
+        note_heights = self._augment_training_data(self.melody_representation)
+        note_durations = [
+            note.duration for _ in range(12) for note in self.melody_representation
+        ]
+        note_offsets = [
+            note.offset for _ in range(12) for note in self.melody_representation
+        ]
+        current_accompanying_chords = [
+            element.transpose(transpose_steps).pitch_height
+            for transpose_steps in range(-6, 6)
+            for element in self.harmony_representation
+        ]
+
+        return np.vstack(
+            [
+                note_heights,
+                note_durations,
+                note_offsets,
+                np.array(current_accompanying_chords).T,
+            ]
+        )
+
+    def parse(self):
+        """Parse the song from the xml representation."""
+        super().parse()
+        return self.melody_neural_net_representation
