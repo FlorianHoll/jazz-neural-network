@@ -9,11 +9,11 @@ from typing import Union
 
 import numpy as np
 
-from rnn.music.utils import CHORD_TYPES_TO_NEURAL_NET_REPRESENTATION
-from rnn.music.utils import CHORD_TYPES_TO_NUMBERS
+from rnn.music.utils import chord_symbol_to_neural_net_representation
+from rnn.music.utils import chord_type_to_numbers
 from rnn.music.utils import functional_chord_notes_to_chord_symbol
-from rnn.music.utils import MIDI_NUMBER_TO_NOTE_SYMBOL
-from rnn.music.utils import NOTE_SYMBOL_TO_NUMBER
+from rnn.music.utils import midi_number_to_note_symbol
+from rnn.music.utils import note_symbol_to_number
 from rnn.music.utils import pitch_height_in_range
 
 
@@ -217,7 +217,7 @@ class Note(MusicalElement):
     @property
     def pitch_height(self) -> int:
         """Get the MIDI pitch height of the note."""
-        pitch_height = NOTE_SYMBOL_TO_NUMBER[self.symbol[:-1]] + 12 * (self.octave + 1)
+        pitch_height = note_symbol_to_number(self.symbol[:-1]) + 12 * (self.octave + 1)
         if pitch_height_in_range(pitch_height):
             return pitch_height
         else:
@@ -288,7 +288,7 @@ class MidiNote(Note):
         For this, we need the root note, which is the modulus of 12.
         This is concatenated with the octave to obtain the final symbol.
         """
-        root_note = MIDI_NUMBER_TO_NOTE_SYMBOL[self.pitch_height % 12]
+        root_note = midi_number_to_note_symbol(self.pitch_height % 12)
         return f"{root_note}{self.octave}"
 
 
@@ -296,14 +296,18 @@ class Chord(MusicalElement):
     """A chord in symbol notation."""
 
     @property
+    def _root_symbol_length(self):
+        return 2 if self.symbol[1] in ["#", "b"] else 1
+
+    @property
     def root_note(self):
         """Get the root note."""
-        return self.symbol[:-4]
+        return self.symbol[: self._root_symbol_length]
 
     @property
     def chord_type(self):
         """Get the chord type symbol."""
-        return self.symbol[-4:]
+        return self.symbol[self._root_symbol_length :]
 
     @property
     def octave(self):
@@ -314,7 +318,7 @@ class Chord(MusicalElement):
     def pitch_height(self):
         """Get the pitch heights of all notes."""
         root_note = Note(f"{self.root_note}4").pitch_height
-        functional_notes_from_root = CHORD_TYPES_TO_NUMBERS[self.chord_type]
+        functional_notes_from_root = chord_type_to_numbers(self.chord_type)
         return root_note + functional_notes_from_root
 
     @property
@@ -325,7 +329,7 @@ class Chord(MusicalElement):
     @property
     def neural_net_representation(self):
         """Get the neural net representation."""
-        return CHORD_TYPES_TO_NEURAL_NET_REPRESENTATION[self.symbol]
+        return chord_symbol_to_neural_net_representation(self.symbol)
 
     def transpose(self, steps: int):
         """Transpose the whole chord."""
@@ -388,7 +392,7 @@ class MidiChord(Chord):
         For this, we need the root note, which is the modulus of 12.
         This is concatenated with the octave to obtain the final symbol.
         """
-        root_note = MIDI_NUMBER_TO_NOTE_SYMBOL[self.pitch_height[0] % 12]
+        root_note = midi_number_to_note_symbol(self.pitch_height[0] % 12)
         note_functions = self.pitch_height - self.pitch_height[0]
         chord_type = functional_chord_notes_to_chord_symbol(note_functions)
         return f"{root_note}{chord_type}"

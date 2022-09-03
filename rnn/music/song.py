@@ -3,7 +3,7 @@ import logging
 from typing import List
 from typing import Union
 
-import bs4.element
+import bs4
 import numpy as np
 from bs4 import BeautifulSoup
 
@@ -12,8 +12,8 @@ from rnn.music.musical_elements import Chord
 from rnn.music.musical_elements import Note
 from rnn.music.musical_elements import RestChord
 from rnn.music.musical_elements import RestNote
-from rnn.music.utils import CHORD_TYPE_TO_COMPATIBLE_CHORD
-from rnn.music.utils import SHARPS_TO_KEY_SIGNATURE_SYMBOL
+from rnn.music.utils import chord_type_to_compatible_chord
+from rnn.music.utils import sharps_to_key_signature_symbol
 
 logger = logging.getLogger(__name__)
 
@@ -65,7 +65,7 @@ class SongParser:
         self.harmony_representation = []
 
     @property
-    def key_signature(self) -> str:
+    def key_signature(self) -> tuple[str]:
         """Get the key signature of the whole song.
 
         :return: The key signature as a symbol, e.g. "C" or "F#".
@@ -73,7 +73,7 @@ class SongParser:
         key_signature_in_fifths_from_c = int(
             self.raw_data.find("key").find("fifths").string
         )
-        return SHARPS_TO_KEY_SIGNATURE_SYMBOL[key_signature_in_fifths_from_c]
+        return sharps_to_key_signature_symbol(key_signature_in_fifths_from_c)
 
     def parse(self):
         """Parse the song from the xml representation.
@@ -247,7 +247,7 @@ class SongParser:
 
         :param chord_type: The chord type given by the .xml representation.
         """
-        return CHORD_TYPE_TO_COMPATIBLE_CHORD[chord_type]
+        return chord_type_to_compatible_chord(chord_type)
 
     def _convert_and_augment_training_data(
         self, input_length: int, target_length: int
