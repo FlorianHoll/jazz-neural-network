@@ -16,16 +16,6 @@ from rnn.music.utils import MIDI_NUMBER_TO_NOTE_SYMBOL
 from rnn.music.utils import NOTE_SYMBOL_TO_NUMBER
 from rnn.music.utils import pitch_height_in_range
 
-BASSNOTE_RANGE = [40, 64]
-NOTE_RANGE = [21, 108]
-MELODY_NOTE_RANGE = [48, 108]
-OCTAVE_RANGE = [0, 8]
-DURATION_RANGE = [3, 48]
-OFFSET_RANGE = [0, 45]
-
-SYMBOL_MISSING = "In order to transform to notes, you must hand a symbol."
-NUMBER_MISSING = "In order to transform to a symbol, you must hand note numbers."
-
 
 class MusicalElement:
     """Basic musical element."""
@@ -96,11 +86,7 @@ class RestElement(MusicalElement):
     important part of music.
     """
 
-    def __init__(
-        self,
-        duration: int = 12,
-        offset: int = 0,
-    ) -> None:
+    def __init__(self, duration: int = 12, offset: int = 0) -> None:
         """Initialize the RestElement."""
         super().__init__(element="Rest", duration=duration, offset=offset)
 
@@ -186,8 +172,7 @@ class RestChord(RestElement):
     def symbol(self):
         """Return the symbol.
 
-        'N.C.' stands for 'No Chord', indicating that no chord is present
-        here.
+        'N.C.' stands for 'No Chord', indicating that no chord is present here.
         """
         return "N.C."
 
@@ -252,7 +237,7 @@ class Note(MusicalElement):
     def transpose(self, steps: int):
         """Transpose the note."""
         self._check_if_transposing_works(steps)
-        return MidiNote(self.pitch_height + steps)
+        return MidiNote(self.pitch_height + steps, self.duration, self.offset)
 
     def octave_down(self):
         """Transpose the note one octave down."""
@@ -265,7 +250,9 @@ class Note(MusicalElement):
     def __repr__(self):
         """Represent the note with all relevant information."""
         return (
-            f"Note {self.symbol} (duration: {self.duration}, " f"offset: {self.offset})"
+            f"Note {self.symbol} "
+            f"(duration: {self.duration}, "
+            f"offset: {self.offset})"
         )
 
 
@@ -343,14 +330,14 @@ class Chord(MusicalElement):
     def transpose(self, steps: int):
         """Transpose the whole chord."""
         self._check_if_transposing_works(steps)
-        return MidiChord(self.pitch_height + steps)
+        return MidiChord(self.pitch_height + steps, self.duration, self.offset)
 
     def octave_down(self):
-        """Transpose the whole chord ."""
+        """Transpose the whole chord one octave down."""
         return self.transpose(-12)
 
     def octave_up(self):
-        """Test."""
+        """Transepose the whole chord one octave up."""
         return self.transpose(12)
 
     def __repr__(self):
@@ -359,6 +346,21 @@ class Chord(MusicalElement):
             f"Chord {self.symbol} (duration: {self.duration}, "
             f"offset: {self.offset})"
         )
+
+
+class AccompanyingChord(Chord):
+    """A chord that accompanies the melody."""
+
+    @property
+    def neural_net_representation(self):
+        """Represent the chord as neural net compatible pitch heights."""
+        return self.pitch_height - 48
+
+    def transpose(self, steps: int):
+        """Transpose the whole chord."""
+        self._check_if_transposing_works(steps)
+        new_chord = MidiChord(self.pitch_height + steps).symbol
+        return AccompanyingChord(new_chord, self.duration, self.offset)
 
 
 class MidiChord(Chord):
