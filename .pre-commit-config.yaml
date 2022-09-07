@@ -49,7 +49,7 @@ repos:
               "--jobs=4",
               "--good-names=i,j,k,v,_,x,y,X,Y,X_train,X_test,df",
               "--fail-under=8.5",
-              "--disable=similarities,logging-fstring-interpolation,import-error,wrong-import-order,C0330,logging-fstring-interpolation,E0611,E1130,W0613,E1136"
+              "--disable=similarities,logging-fstring-interpolation,import-error,wrong-import-order,C0330,W0221,logging-fstring-interpolation,E0611,E1130,W0613,E1136"
           ]
         exclude: "tests/"
       - id: pylint
