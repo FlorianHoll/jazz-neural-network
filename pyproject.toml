@@ -5,15 +5,17 @@ description = ""
 authors = ["Florian Holl <florian.holl@posteo.de>"]
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = ">=3.9,<3.11"
 numpy = "^1.23.2"
 pandas = "^1.4.3"
 music21 = "^7.3.3"
 bs4 = "^0.0.1"
 lxml = "^4.9.1"
 pytest = "^7.1.2"
+tensorflow = "^2.9.2"
 
 [tool.poetry.dev-dependencies]
+pydot = "^1.4.2"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
