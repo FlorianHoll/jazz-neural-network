@@ -18,10 +18,12 @@ _note_symbol_to_number = {
     "A": 9,
     "Bb": 10,
     "A#": 10,
-    "B": 11,
     "Cb": 11,
+    "B": 11,
 }
 
 _midi_number_to_note_symbol = {
     value: key for key, value in _note_symbol_to_number.items()
 }
+
+_NEURAL_NET_TRANSFORM_SCALING = 48

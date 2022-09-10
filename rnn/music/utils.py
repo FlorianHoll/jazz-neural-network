@@ -6,8 +6,10 @@ import numpy as np
 from rnn.music._chord_utils import _chord_symbol_to_neural_net_representation
 from rnn.music._chord_utils import _chord_type_to_compatible_chord
 from rnn.music._chord_utils import _chord_types_to_numbers
+from rnn.music._chord_utils import _neural_net_representation_to_chord_symbol
 from rnn.music._key_utils import _sharps_to_key_signature_symbol
 from rnn.music._note_utils import _midi_number_to_note_symbol
+from rnn.music._note_utils import _NEURAL_NET_TRANSFORM_SCALING
 from rnn.music._note_utils import _note_symbol_to_number
 
 
@@ -53,6 +55,16 @@ def chord_symbol_to_neural_net_representation(chord_type: str) -> int:
     return _chord_symbol_to_neural_net_representation[chord_type]
 
 
+def neural_net_representation_to_chord_symbol(neural_net_chord_number: int) -> str:
+    """Convert a chord symbol to the neural network representation.
+
+    :param neural_net_chord_number: The neural net representation
+        of the chord symbol (e.g. 37, 29).
+    :return: The chord symbol (e.g. "C#min7" or "Fmaj7").
+    """
+    return _neural_net_representation_to_chord_symbol[neural_net_chord_number]
+
+
 def functional_chord_notes_to_chord_symbol(chord_notes: np.ndarray) -> str:
     """Get the chord symbol based on the function that the notes have.
 
@@ -91,10 +103,32 @@ def octave_in_range(octave: int) -> bool:
     return (octave >= 0) & (octave <= 8)
 
 
-def pitch_height_in_range(pitch_height: Union[int, np.ndarray]) -> bool:
+def pitch_heights_in_range(pitch_height: Union[int, np.ndarray]) -> bool:
     """Indicate whether a given pitch height is within the plausible range.
 
     MIDI pitches range from 21 to 108, with 21 representing A0 and 108 C8;
     therefore, this is taken as the plausible range.
+
+    :param pitch_height: The MIDI pitch height(s) (either a single note or a chord).
+    :return: Boolean indicating if all given pitch heights are in the plausible range.
     """
     return np.all(pitch_height >= 21) & np.all(pitch_height <= 108)
+
+
+def note_to_neural_net_representation(pitch_height: Union[int, np.ndarray]) -> int:
+    """Transform a note into the neural net representation.
+
+    :param pitch_height: The MIDI pitch height(s) (either a single note or a chord).
+    :return: The neural net representation of the note.
+    """
+    return pitch_height - _NEURAL_NET_TRANSFORM_SCALING
+
+
+def neural_net_representation_to_note(pitch_height: Union[int, np.ndarray]) -> int:
+    """Transform a note into the neural net representation.
+
+    :param pitch_height: The neural net representation(s) (either a single note
+        or a chord).
+    :return: The MIDI representation of the note(s).
+    """
+    return pitch_height + _NEURAL_NET_TRANSFORM_SCALING
