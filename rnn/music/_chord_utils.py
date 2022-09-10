@@ -39,9 +39,11 @@ _possible_half_diminished_symbols = [
     "diminished-seventh",
     "mi7b5",
     "m7b5",
+    "dim",
+    "diminished",
+    "o",
+    "ø",
 ]
-
-_possible_diminished_symbols = ["dim", "diminished", "o", "ø"]
 
 _possible_dominant_seven_symbols = [
     "dominant-seventh",
@@ -69,9 +71,6 @@ _chord_type_to_compatible_chord.update(
 _chord_type_to_compatible_chord.update(
     dict.fromkeys(_possible_half_diminished_symbols, "dim7")
 )
-_chord_type_to_compatible_chord.update(
-    dict.fromkeys(_possible_diminished_symbols, "dim")
-)
 
 # Neural net representation of chords.
 _keys = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
@@ -89,7 +88,7 @@ _alternative_keys = [
     "Bb",
     "Cb",
 ]
-_chord_types = ["maj7", "min7", "dom7", "dim7", "dim"]
+_chord_types = ["maj7", "min7", "dom7", "dim7"]
 
 _chords = ["N.C."] + [key + chord for key in _keys for chord in _chord_types]
 _alternative_chords = ["N.C."] + [
@@ -102,6 +101,10 @@ _chord_symbol_to_neural_net_representation = {
 _chord_symbol_to_neural_net_representation.update(
     {chord: i for i, chord in enumerate(_alternative_chords)}
 )
+
+_neural_net_representation_to_chord_symbol = {
+    value: key for key, value in _chord_symbol_to_neural_net_representation.items()
+}
 
 # Represent chord types as the function of the notes that the chord consists of.
 _chord_types_to_numbers = {
