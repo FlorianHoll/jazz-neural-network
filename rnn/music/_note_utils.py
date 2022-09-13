@@ -1,6 +1,7 @@
 """Note utils."""
 
 _note_symbol_to_number = {
+    "B#": 0,
     "C": 0,
     "Db": 1,
     "C#": 1,

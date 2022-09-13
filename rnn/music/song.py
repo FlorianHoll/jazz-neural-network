@@ -7,7 +7,6 @@ import bs4
 import numpy as np
 from bs4 import BeautifulSoup
 
-from rnn.music.musical_elements import AccompanyingChord
 from rnn.music.musical_elements import Chord
 from rnn.music.musical_elements import Note
 from rnn.music.musical_elements import RestChord
@@ -139,7 +138,7 @@ class SongParser:
             Note object or a RestNote object if the note was a rest symbol.
         """
         note_duration = int(note.find("duration").string)
-        note_duration *= self.duration_multiplier  # correct for individual .xml parsing
+        note_duration *= self.duration_multiplier  # correct for individual parsings
 
         # If the note is NOT a rest, it will have the 'step'
         #   and 'octave' attributes; however, if it IS a rest,
@@ -159,7 +158,7 @@ class SongParser:
             except AttributeError:
                 pass
             final_note_symbol = f"{note_symbol}{note_octave}"
-            note_to_add = Note(final_note_symbol, note_duration, offset)
+            note_to_add = Note.from_symbol(final_note_symbol, note_duration, offset)
 
         # If an AttributeError occurred while trying to obtain the symbol, we know
         #   that the element is a rest. The duration and offset apply nonetheless.
@@ -198,7 +197,6 @@ class SongParser:
         chord_type = harmony.find("kind").get("text")  # get the extension symbol
         # Change representation depending on what network the chord
         #   element will be used for.
-        chord_class = AccompanyingChord if accompanying_chord else Chord
 
         # If the chord has an offset, use it - this indicates that there is only
         #   one note with several chords played over it. Only in this case will
@@ -231,8 +229,8 @@ class SongParser:
                 chord_type = harmony.find("kind").string
             chord_type = self._convert_to_compatible_chord_type(chord_type)
 
-            final_chord_symbol = f"{root}{chord_type}"
-            chord_to_add = chord_class(final_chord_symbol, offset=offset)
+            final_chord_symbol = f"{root} {chord_type}"
+            chord_to_add = Chord.from_symbol(final_chord_symbol, offset=offset)
 
         return chord_to_add
 
@@ -402,7 +400,11 @@ class HarmonySongParser(SongParser):
             all information that the neural net needs.
         """
         self._calculate_chord_durations()
-        attributes_to_augment = ["neural_net_representation", "duration", "offset"]
+        attributes_to_augment = [
+            "pitch_neural_net_representation",
+            "duration",
+            "offset",
+        ]
         chord_types, durations, offsets = [
             self._transpose_and_slide(
                 self.harmony_representation, attribute, input_length, target_length
@@ -485,7 +487,11 @@ class MelodySongParser(SongParser):
         elements = measure.findChildren(["note", "harmony"])
         # The offset is set to 0 initially and will be updated iteratively.
         offset = 0
-        current_accompanying_harmony = None
+        current_accompanying_harmony = (
+            self.harmony_representation[-1]
+            if len(self.harmony_representation) > 0
+            else RestChord()
+        )
         for element in elements:
             # First, find out if the element is a note or a harmony symbol.
             #   Note: Rests are also a "note" object in the .xml file.
@@ -500,6 +506,7 @@ class MelodySongParser(SongParser):
                 current_accompanying_harmony = self._parse_one_harmony_symbol(
                     element, offset, accompanying_chord=True
                 )
+        assert offset == 48
 
     def _convert_and_augment_training_data(
         self, input_length: int, target_length: int
@@ -530,14 +537,17 @@ class MelodySongParser(SongParser):
         ]
         accompanying_chords = self._transpose_and_slide(
             self.harmony_representation,
-            "neural_net_representation",
+            "pitch_neural_net_representation",
             input_length,
             target_length,
         )
-        chord_note_1 = accompanying_chords[:, :, 0]
-        chord_note_2 = accompanying_chords[:, :, 1]
-        chord_note_3 = accompanying_chords[:, :, 2]
-        chord_note_4 = accompanying_chords[:, :, 3]
+        (
+            chord_note_1,
+            chord_note_2,
+            chord_note_3,
+            chord_note_4,
+        ) = accompanying_chords.swapaxes(0, 2).swapaxes(1, 2)
+
         return np.array(
             [
                 chord_types,

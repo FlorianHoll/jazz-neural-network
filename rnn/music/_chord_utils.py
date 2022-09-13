@@ -90,9 +90,9 @@ _alternative_keys = [
 ]
 _chord_types = ["maj7", "min7", "dom7", "dim7"]
 
-_chords = ["N.C."] + [key + chord for key in _keys for chord in _chord_types]
+_chords = ["N.C."] + [f"{key} {chord}" for key in _keys for chord in _chord_types]
 _alternative_chords = ["N.C."] + [
-    key + chord for key in _alternative_keys for chord in _chord_types
+    f"{key} {chord}" for key in _alternative_keys for chord in _chord_types
 ]
 _chords.append("N.C.")
 _chord_symbol_to_neural_net_representation = {
