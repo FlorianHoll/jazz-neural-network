@@ -75,7 +75,8 @@ class SongParser:
         return sharps_to_key_signature_symbol(key_signature_in_fifths_from_c)
 
     def parse(self):
-        """Parse the song from the xml representation.
+        """
+        Parse the song from the xml representation.
 
         This means iteratively parsing all measures. For each measure,
         the musical elements that the measure consists of will be
@@ -168,10 +169,7 @@ class SongParser:
         return note_to_add
 
     def _parse_one_harmony_symbol(
-        self,
-        harmony: bs4.element.Tag,
-        offset: int,
-        accompanying_chord: bool = False,
+        self, harmony: bs4.element.Tag, offset: int
     ) -> Union[RestChord, Chord]:
         """Parse one harmony symbol and return it.
 
@@ -204,7 +202,7 @@ class SongParser:
         #   the durations of the notes to update the offset obviously does not work.
         new_offset = harmony.find("offset")
         if new_offset is not None:
-            offset = int(new_offset.string)
+            offset += int(new_offset.string)
 
         # Multiply offset by the multiplier to obtain the standardized offset.
         offset *= self.duration_multiplier
@@ -230,7 +228,7 @@ class SongParser:
             chord_type = self._convert_to_compatible_chord_type(chord_type)
 
             final_chord_symbol = f"{root} {chord_type}"
-            chord_to_add = Chord.from_symbol(final_chord_symbol, offset=offset)
+            chord_to_add = Chord.from_symbol(final_chord_symbol, offset=int(offset))
 
         return chord_to_add
 
@@ -269,7 +267,7 @@ class SongParser:
         input_length: int,
         target_length: int,
     ) -> np.ndarray:
-        """Augment the data by (1.) transposing to each key; (2.) applying a sliding window.
+        """Augment the data by transposing to each key and applying a sliding window.
 
         This means that the neural net will receive the training
         data in all keys to (1.) avoid over-representation of
@@ -343,11 +341,13 @@ class SongParser:
 
         :param elements_to_slide: The elements that the sliding window
             shall be applied to (length N).
-        :param sequence_length: The length of the input sequence
-        :param target_length: The length of the target.
+        :param sequence_length: The length of the input sequence (has to be positive).
+        :param target_length: The length of the target (has to be positive).
         :return: An array of slided windows with shape
             N x (sequence_length + target_length).
         """
+        if (sequence_length <= 0) or (target_length <= 0):
+            raise ValueError("Both sequence and target length have to be > 0.")
         slided = np.array(
             [np.roll(elements_to_slide, -i) for i, _ in enumerate(elements_to_slide)]
         )
@@ -401,7 +401,7 @@ class HarmonySongParser(SongParser):
         """
         self._calculate_chord_durations()
         attributes_to_augment = [
-            "pitch_neural_net_representation",
+            "neural_net_representation",
             "duration",
             "offset",
         ]
@@ -529,7 +529,7 @@ class MelodySongParser(SongParser):
             all information that the neural net needs.
         """
         note_attributes_to_augment = ["neural_net_representation", "duration", "offset"]
-        chord_types, durations, offsets = [
+        melody_notes, durations, offsets = [
             self._transpose_and_slide(
                 self.melody_representation, attribute, input_length, target_length
             )
@@ -550,7 +550,7 @@ class MelodySongParser(SongParser):
 
         return np.array(
             [
-                chord_types,
+                melody_notes,
                 durations,
                 offsets,
                 chord_note_1,

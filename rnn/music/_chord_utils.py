@@ -42,6 +42,7 @@ _possible_half_diminished_symbols = [
     "dim",
     "diminished",
     "o",
+    "-7b5",
     "ø",
 ]
 
