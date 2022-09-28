@@ -15,6 +15,8 @@ _possible_minor_symbols = [
     "mi9",
     "minor-sixth",
     "minor",
+    "min7",
+    "-7",
 ]
 
 _possible_major_seven_symbols = [
@@ -27,6 +29,7 @@ _possible_major_seven_symbols = [
     "maj13",
     "6",
     "",
+    "j7",
     "ma7",
     "maj",
 ]
@@ -59,6 +62,7 @@ _possible_dominant_seven_symbols = [
     "9",
     "+",
     "augmented",
+    "dom7",
 ]
 
 _chord_type_to_compatible_chord = {}
