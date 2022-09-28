@@ -180,14 +180,6 @@ class SongParser:
         :param harmony: The chord to be parsed (as a BeautifulSoup representation
             of the .xml element).
         :param offset: The offset that was updated throughout the measure.
-        :param accompanying_chord: We need different representations of the
-            chord for the melody and the harmony neural network; therefore,
-            this indicates the switch between the two representations. If False
-            (default), the representation for the harmony network will be
-            returned, in which the chord is represented as one number.
-            If True, the representation for the melody network will be returned,
-            in which the chord is represented as the four notes that constitute
-            the chord.
         :return: The chord to be added to the harmony representation; either a
             Chord, an AccompanyingChord, or a RestChord object.
         """
@@ -374,7 +366,7 @@ class HarmonySongParser(SongParser):
         for element in elements:
             # First, find out if the element is a note or a harmony symbol.
             if element.name == "note":
-                note_duration = note_duration = int(element.find("duration").string)
+                note_duration = int(element.find("duration").string)
                 # The offset must be updated to keep track of the position
                 #   of the measure that is currently being parsed.
                 offset += note_duration
@@ -504,9 +496,9 @@ class MelodySongParser(SongParser):
                 offset += note.duration
             else:
                 current_accompanying_harmony = self._parse_one_harmony_symbol(
-                    element, offset, accompanying_chord=True
+                    element, offset
                 )
-        assert offset == 48
+        assert offset == 48  # Assert that the measure length works out.
 
     def _convert_and_augment_training_data(
         self, input_length: int, target_length: int
