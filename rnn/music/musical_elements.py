@@ -10,6 +10,7 @@ from typing import Union
 import numpy as np
 
 from rnn.music.utils import chord_symbol_to_neural_net_representation
+from rnn.music.utils import chord_type_to_compatible_chord
 from rnn.music.utils import chord_type_to_numbers
 from rnn.music.utils import functional_chord_notes_to_chord_symbol
 from rnn.music.utils import midi_number_to_note_symbol
@@ -608,7 +609,11 @@ class Chord(MusicalElement):
             return RestChord(duration, offset)
 
         # Split the symbol into the relevant information.
-        root, chord_type = symbol.split(" ")
+        symbol_length = 2 if symbol[1] in ("#", "b") else 1
+        root = symbol[:symbol_length]
+        chord_type = symbol[symbol_length:].replace(" ", "")
+        chord_type = chord_type_to_compatible_chord(chord_type)
+        # By default, the chord will have a root in the fourth octave.
         root_symbol = f"{root}{4}"
 
         # Construct the chord by getting the pitch height of the
