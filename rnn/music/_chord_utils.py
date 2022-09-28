@@ -15,6 +15,8 @@ _possible_minor_symbols = [
     "mi9",
     "minor-sixth",
     "minor",
+    "min7",
+    "-7",
 ]
 
 _possible_major_seven_symbols = [
@@ -27,6 +29,7 @@ _possible_major_seven_symbols = [
     "maj13",
     "6",
     "",
+    "j7",
     "ma7",
     "maj",
 ]
@@ -42,6 +45,7 @@ _possible_half_diminished_symbols = [
     "dim",
     "diminished",
     "o",
+    "-7b5",
     "ø",
 ]
 
@@ -58,6 +62,7 @@ _possible_dominant_seven_symbols = [
     "9",
     "+",
     "augmented",
+    "dom7",
 ]
 
 _chord_type_to_compatible_chord = {}
@@ -90,9 +95,9 @@ _alternative_keys = [
 ]
 _chord_types = ["maj7", "min7", "dom7", "dim7"]
 
-_chords = ["N.C."] + [key + chord for key in _keys for chord in _chord_types]
+_chords = ["N.C."] + [f"{key} {chord}" for key in _keys for chord in _chord_types]
 _alternative_chords = ["N.C."] + [
-    key + chord for key in _alternative_keys for chord in _chord_types
+    f"{key} {chord}" for key in _alternative_keys for chord in _chord_types
 ]
 _chords.append("N.C.")
 _chord_symbol_to_neural_net_representation = {

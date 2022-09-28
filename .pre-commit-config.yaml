@@ -61,7 +61,7 @@ repos:
           [
               "-rn",
               "--fail-under=8.5",
-              "--disable=C0116,import-error,no-self-use",
+              "--disable=C0116,import-error,no-self-use,W0212",
               "--good-names=i,j,k,v,_,x,y,X,Y,X_train,X_test",
               "--jobs=4",
           ]

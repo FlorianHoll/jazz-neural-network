@@ -10,6 +10,7 @@ from typing import Union
 import numpy as np
 
 from rnn.music.utils import chord_symbol_to_neural_net_representation
+from rnn.music.utils import chord_type_to_compatible_chord
 from rnn.music.utils import chord_type_to_numbers
 from rnn.music.utils import functional_chord_notes_to_chord_symbol
 from rnn.music.utils import midi_number_to_note_symbol
@@ -41,6 +42,36 @@ class MusicalElement:
         """Initialize the MusicalElement."""
         self.duration = duration
         self.offset = offset
+
+    @property
+    def duration(self):
+        """Get the duration."""
+        return self._duration
+
+    @duration.setter
+    def duration(self, new_value: int):
+        """Set the duration to a new value after checking that the value is valid."""
+        if new_value <= 0 or new_value > 48:
+            raise ValueError(
+                "The duration value trying to be set is outside of the plausible "
+                "range for a note duration. Possible values are 1 - 48."
+            )
+        self._duration = new_value
+
+    @property
+    def offset(self):
+        """Get the offset."""
+        return self._offset
+
+    @offset.setter
+    def offset(self, new_value: int):
+        """Set the offset to a new value after checking that the value is valid."""
+        if new_value < 0 or new_value > 47:
+            raise ValueError(
+                "The offset value trying to be set is outside of the plausible "
+                "range for a note offset. Possible values are 0 - 47."
+            )
+        self._offset = new_value
 
     @property
     @abc.abstractmethod
@@ -243,17 +274,27 @@ class Note(MusicalElement):
 
     def __init__(self, pitch_height: int, duration: int = 12, offset: int = 0) -> None:
         """Initialize the Note."""
-        if not pitch_heights_in_range(pitch_height):
+        self.pitch_height = pitch_height
+        super().__init__(duration, offset)
+
+    @property
+    def pitch_height(self):
+        """Get the pitch height."""
+        return self._pitch_height
+
+    @pitch_height.setter
+    def pitch_height(self, new_value: int):
+        """Set the pitch height if the new value is valid."""
+        if not pitch_heights_in_range(new_value):
             raise ValueError(
                 "The given pitch height is outside the plausible range (21-108)."
             )
-        self.pitch_height = pitch_height
-        super().__init__(duration, offset)
+        self._pitch_height = new_value
 
     @classmethod
     def from_pitch_height(
         cls, pitch_height: int, duration: int = 12, offset: int = 0
-    ) -> Union["Note", "RestNote"]:
+    ) -> Union["Note", RestNote]:
         """
         Construct a note from a MIDI pitch height.
 
@@ -279,7 +320,7 @@ class Note(MusicalElement):
     @classmethod
     def from_neural_net_representation(
         cls, neural_net_representation: int, duration: int = 12, offset: int = 0
-    ) -> Union["Note", "RestNote"]:
+    ) -> Union["Note", RestNote]:
         """
         Construct a note from a neural net representation.
 
@@ -304,7 +345,7 @@ class Note(MusicalElement):
     @classmethod
     def from_symbol(
         cls, symbol: str, duration: int = 12, offset: int = 0
-    ) -> Union["Note", "RestNote"]:
+    ) -> Union["Note", RestNote]:
         """
         Construct a note from a symbol.
 
@@ -442,15 +483,49 @@ class Chord(MusicalElement):
 
     def __init__(self, notes: list[Note], duration: int = 12, offset: int = 0) -> None:
         """Initialize the Chord."""
-        for note in notes:
-            if not pitch_heights_in_range(note.pitch_height):
-                raise ValueError(
-                    f"The given pitch height ({note.pitch_height}) for {note} "
-                    f"is not within the plausible range (21-108). "
-                )
+        self.notes = notes
         super().__init__(duration, offset)
-        self.notes = [Note(note.pitch_height, duration, offset) for note in notes]
         self.pitch_height = np.array([note.pitch_height for note in notes])
+
+    @property
+    def duration(self):
+        """Get the duration."""
+        return self._duration
+
+    @duration.setter
+    def duration(self, new_value: int):
+        """Overwrite setter method of base class.
+
+        This is done since we want to overwrite all individual note's
+        durations when setting the overall chord duration.
+        If a non-plausible value should occur, the setter method of the
+        note objects will raise an error.
+
+        :param new_value: The new value to be set (integer between 1-48).
+        """
+        for note in self.notes:
+            note.duration = new_value
+        self._duration = new_value
+
+    @property
+    def offset(self):
+        """Get the offset."""
+        return self._offset
+
+    @offset.setter
+    def offset(self, new_value: int):
+        """Overwrite setter method of base class.
+
+        This is done because we want to overwrite all individual note's
+        offsets when setting the overall chord offset.
+        If a non-plausible value should occur, the setter method of the
+        note objects will raise an error.
+
+        :param new_value: The new value to be set (integer between 0-47).
+        """
+        for note in self.notes:
+            note.offset = new_value
+        self._offset = new_value
 
     @classmethod
     def from_pitch_height(
@@ -534,7 +609,11 @@ class Chord(MusicalElement):
             return RestChord(duration, offset)
 
         # Split the symbol into the relevant information.
-        root, chord_type = symbol.split(" ")
+        symbol_length = 2 if symbol[1] in ("#", "b") else 1
+        root = symbol[:symbol_length]
+        chord_type = symbol[symbol_length:].replace(" ", "")
+        chord_type = chord_type_to_compatible_chord(chord_type)
+        # By default, the chord will have a root in the fourth octave.
         root_symbol = f"{root}{4}"
 
         # Construct the chord by getting the pitch height of the
