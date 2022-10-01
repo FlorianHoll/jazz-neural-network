@@ -196,9 +196,6 @@ class SongParser:
         if new_offset is not None:
             offset += int(new_offset.string)
 
-        # Multiply offset by the multiplier to obtain the standardized offset.
-        offset *= self.duration_multiplier
-
         if chord_type == "N.C.":
             chord_to_add = RestChord(offset=offset)
         else:
