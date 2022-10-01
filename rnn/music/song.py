@@ -1,5 +1,6 @@
 """A song in the training corpus."""
 import logging
+import re
 from typing import List
 from typing import Union
 
@@ -14,7 +15,16 @@ from rnn.music.musical_elements import RestNote
 from rnn.music.utils import chord_type_to_compatible_chord
 from rnn.music.utils import sharps_to_key_signature_symbol
 
+logging_formatter = logging.Formatter(
+    "%(asctime)s|%(levelname)-8s|%(filename)-25s|%(lineno)-4s|%(message)s"
+)
+handler = logging.StreamHandler()
+handler.setFormatter(logging_formatter)
+
+# Add handler and set level.
 logger = logging.getLogger(__name__)
+logger.addHandler(handler)
+logger.setLevel(logging.INFO)
 
 
 class SongParser:
@@ -41,10 +51,13 @@ class SongParser:
 
     def __init__(self, filename: str):
         """Initialize the song."""
-        logger.debug(f"Instantiating song {filename}.")
+        logger.info(
+            f"Instantiating parser for song "
+            f"{re.sub('(data*.)|([./])|(xml*)', '', filename)}"
+        )
         if filename[-4:] != ".xml":
             raise TypeError(
-                "The input file is in the wrong format; "
+                f"The input file {filename} is in the wrong format; "
                 "only .xml files can be parsed."
             )
         with open(filename, "r") as file:
@@ -107,11 +120,11 @@ class SongParser:
         summed_duration_of_measure = (
             np.array(all_durations_in_measure).astype(int).sum()
         )
+        self.duration_multiplier = 48 / summed_duration_of_measure
         logger.debug(
             f"The summed duration of measure 1 is {summed_duration_of_measure}; "
-            f"therefore, the multiplier is {48 / summed_duration_of_measure}."
+            f"therefore, the multiplier is {self.duration_multiplier}."
         )
-        self.duration_multiplier = 48 / summed_duration_of_measure
 
     def _parse_one_measure(self, measure: bs4.element.Tag) -> None:
         """Parse one measure and convert the elements to musical elements.
