@@ -171,6 +171,7 @@ class TrainingPipeline:
         validation_split: float = 0.2,
         save_weights: bool = True,
         weights_file_location: str = None,
+        previous_weights_path: str = None,
     ) -> None:
         """
         Train the neural net.
@@ -181,13 +182,21 @@ class TrainingPipeline:
             of the training process. Defaults to True.
         :param weights_file_location: The location of the file to place the
             weights in.
+        :param previous_weights_path: If specified, pre-trained model weights
+            will be loaded from the specified path.
         """
-        if weights_file_location is None:
-            weights_file_location = f"./model/trained_models/{self.model_type}/weights"
-        logger.debug(f"Saving model to {weights_file_location}.")
-
         x, y = self._load_training_data()
         self._load_and_compile_model()
+
+        if weights_file_location is None:
+            path = f"./model/trained_models/{self.model_type}"
+            os.makedirs(path, exist_ok=True)
+            weights_file_location = f"{path}/weights"
+        logger.debug(f"Saving model to {weights_file_location}.")
+
+        if previous_weights_path is not None:
+            self.model.load_weights(previous_weights_path)
+
         logger.debug("Starting to train the model.")
         self.history = self.model.fit(
             list(x),
