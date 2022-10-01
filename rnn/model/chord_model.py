@@ -73,6 +73,7 @@ class ChordModel(tf.keras.Model):
             gru_size, dropout=gru_dropout_rate, recurrent_dropout=gru_dropout_rate
         )
 
+        # Dense layers before the output layers
         self.dense_chord = DenseWithProcessing(dense_size, dropout_rate)
         self.dense_duration = DenseWithProcessing(dense_size, dropout_rate)
 
@@ -105,7 +106,12 @@ class ChordModel(tf.keras.Model):
 
         return chord_output, duration_output
 
-    def model(self):
-        """Workaround to plot and summarize the model."""
+    def access_model(self):
+        """Workaround to plot and summarize the model.
+
+        For some reason, this does not work for the "plain" subclassed
+        Keras model; therefore, this method is implemented to access things
+        like the number of layers, a plot of the model architecture etc.
+        """
         inputs = [tf.keras.Input(shape=8) for _ in range(3)]
         return tf.keras.Model(inputs=inputs, outputs=self.call(inputs))

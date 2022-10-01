@@ -63,14 +63,14 @@ class OutputDense(Layer):
     """
     A dense layer with batch norm before the activation and dropout after it.
 
-    This layer will be used for the output of both networks. Since both networks
-        have to perform a classification task (finding the right note/ chord
-        among many possible ones), all dense output layers will have a softmax
-        activation function.
+    This layer will be used for the output of both networks. Since both
+    networks have to perform a classification task (finding the right
+    note/ chord among many possible ones), all dense output layers will
+    have a softmax activation function.
 
     :param dense_size: The size of the dense layer.
-        Note: For the weight initialization, we are using the GlorotNormal()
-        initialization method (see
+        Note: For the weight initialization, the GlorotNormal()
+        initialization method is used (see
         http://proceedings.mlr.press/v9/glorot10a/glorot10a.pdf).
     :param l1_regularization: The L1 regularization rate to be applied
         to the dense layer.
