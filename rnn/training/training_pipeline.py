@@ -189,8 +189,8 @@ class TrainingPipeline:
 
         if previous_weights_path is not None:
             self.model.load_weights(previous_weights_path)
+            logger.info(f"Loaded weights from {previous_weights_path}.")
 
-        logger.debug("Starting to train the model.")
         self.history = self.model.fit(
             list(x),
             list(y),

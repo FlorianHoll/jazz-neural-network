@@ -22,12 +22,15 @@ training:
   save_weights: True
 
 callbacks:
+  ModelCheckpoint:
+    monitor: output_1_sparse_categorical_accuracy
+    filepath: ./model/partly_trained_models/melody/weights
+  EarlyStopping:
+    monitor: output_1_sparse_categorical_accuracy
+    patience: 10
+    restore_best_weights: True
   ReduceLROnPlateau:
     monitor: output_1_sparse_categorical_accuracy
     patience: 7
     factor: 0.3
     min_lr: 5e-5
-  EarlyStopping:
-    monitor: output_1_sparse_categorical_accuracy
-    patience: 10
-    restore_best_weights: True
