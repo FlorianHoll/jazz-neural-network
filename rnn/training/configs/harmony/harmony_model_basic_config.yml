@@ -24,7 +24,7 @@ training:
 callbacks:
   ModelCheckpoint:
     monitor: output_1_sparse_categorical_accuracy
-    filepath: ./model/partly_trained_models/melody/weights
+    filepath: ./model/partly_trained_models/harmony/weights
   EarlyStopping:
     monitor: output_1_sparse_categorical_accuracy
     patience: 10
