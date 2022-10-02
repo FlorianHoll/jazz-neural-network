@@ -225,7 +225,7 @@ class TrainingPipeline:
     def __save_model_summary(self):
         """Write out the summary of the model as a .txt file."""
         self.__create_output_folder()
-        with open(f"{self.output_directory}/chord_model.txt", "w") as fh:
+        with open(f"{self.output_directory}/{self._model_type}_model.txt", "w") as fh:
             self.model.access_model().summary(print_fn=lambda x: fh.write(x + "\n"))
 
     def __save_model_architecture_as_image(self):
@@ -233,7 +233,7 @@ class TrainingPipeline:
         self.__create_output_folder()
         tf.keras.utils.plot_model(
             self.model.access_model(),
-            f"{self.output_directory}/harmony_model.png",
+            f"{self.output_directory}/{self._model_type}_model.png",
             show_shapes=True,
             show_dtype=True,
         )
