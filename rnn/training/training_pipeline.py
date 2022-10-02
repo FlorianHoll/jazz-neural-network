@@ -3,15 +3,15 @@ import glob
 import logging
 import os
 from multiprocessing import Pool
+from typing import Dict
 from typing import Tuple
 from typing import Union
 
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras.callbacks import EarlyStopping
-from tensorflow.keras.callbacks import ModelCheckpoint
-from tensorflow.keras.callbacks import ReduceLROnPlateau
+import tensorflow.keras.callbacks as callbacks
+import yaml
 
 from rnn.model.chord_model import ChordModel
 from rnn.model.melody_model import MelodyModel
@@ -47,31 +47,29 @@ def _parse_one_song(
 class TrainingPipeline:
     """A training pipeline.
 
-    :param model_to_train: The model to train. Either "melody" or "harmony".
-    :param input_length: The length of one input sequence to the network.
-    :param dropout_rate: The dropout rate to be applied to the dense layers.
-    :param embedding_dimension: The embedding dimension of the notes/ chords.
-    :param gru_size: The size of the Gated Recurrent Unit.
-    :param dense_size: The size of the dense layers.
-    :param gru_dropout_rate: The dropout rate for the GRU.
+    :param config: A dictionary read from a .yml file containing all the
+        necessary configurations for training the model. The config file
+        has to give the following parameters:
+        - model_type: A string indicating which model is supposed to be
+            trained (either 'melody' or 'harmony').
+        - architecture: A dictionary containing all the parameters for
+            the model architecture, such as dropout_rate, gru_size etc.
+        - training: A dictionary containing all the parameters for the
+            training process, such as epochs, validation_split etc.
+        - callbacks: A dictionary where each entry is the name of the
+            callback (has to be exactly the name of the module in Keras)
+            and the value is yet another dictionary containing the
+            parameters for the respective callback.
     """
 
-    def __init__(
-        self,
-        model_to_train: str,
-        input_length: int = 8,
-        dropout_rate: float = 0.4,
-        embedding_dimension: int = 24,
-        gru_size: int = 256,
-        dense_size: int = 128,
-        gru_dropout_rate: float = 0.2,
-    ) -> None:
+    def __init__(self, config: Dict) -> None:
         """Initialize the training pipeline."""
-        self.model_type = model_to_train
-        if self.model_type == "melody":
+        self.config = config
+        self._model_type = self.config["model_type"]
+        if self._model_type == "melody":
             model = MelodyModel
             self.parser = MelodySongParser
-        elif self.model_type == "harmony":
+        elif self._model_type == "harmony":
             model = ChordModel
             self.parser = HarmonySongParser
         else:
@@ -81,17 +79,11 @@ class TrainingPipeline:
             )
 
         # Initialize model with the given parameters.
-        self.model = model(
-            input_length=input_length,
-            dropout_rate=dropout_rate,
-            embedding_dimension=embedding_dimension,
-            gru_size=gru_size,
-            dense_size=dense_size,
-            gru_dropout_rate=gru_dropout_rate,
-        )
-        logger.debug("Model initialized successfully.")
-        self.input_length = input_length
+        self.model = model(**self.config["architecture"])
+        logger.debug("Model successfully initialized.")
+        self.input_length = self.config["architecture"].get("input_length", 8)
         self.history = None
+        self.output_directory = None
 
     def _load_training_data(
         self, parallelize: bool = True
@@ -122,48 +114,48 @@ class TrainingPipeline:
 
     def _load_and_compile_model(self):
         """Load and compile the model."""
-        nr_output_layers = len(self.model.access_model().outputs)
         logger.debug("Compiling the model.")
+        compile_config = self.config["compile_info"]
         self.model.compile(
-            optimizer=tf.keras.optimizers.Adam(),
+            optimizer=getattr(
+                tf.keras.optimizers, compile_config.get("optimizer", "Adam")
+            )(),
             loss={
-                f"output_{i}": tf.keras.losses.SparseCategoricalCrossentropy()
-                for i in range(1, nr_output_layers + 1)
+                # Loss for the main output, i.e. either the harmony or the melody.
+                "output_1": getattr(
+                    tf.keras.losses, compile_config["loss"][self._model_type]
+                )(),
+                # Loss for the duration (both models have this second output).
+                "output_2": getattr(
+                    tf.keras.losses, compile_config["loss"]["duration"]
+                )(),
             },
+            # We want metrics to be comparable; therefore, they will not be changed
+            #   throughout the modeling experimentation.
             metrics=[
                 [
                     tf.keras.metrics.SparseCategoricalAccuracy(),
                     tf.keras.metrics.TopKCategoricalAccuracy(k=5),
                 ]
-                for _ in range(nr_output_layers)
+                for _ in range(2)
             ],
         )
         logger.info("Model successfully compiled.")
+        if compile_config.get("save_architecture_summary", False):
+            self.__save_model_summary()
+        if compile_config.get("save_architecture_image", False):
+            self.__save_model_architecture_as_image()
 
     def _get_callbacks(self):
-        """Get the callbacks for the model training."""
-        callbacks = [
-            ModelCheckpoint(
-                filepath=(
-                    f"./model/partly_trained_models/{self.model_type}/"
-                    "weights/weights-{epoch:04d}.ckpt"
-                ),
-                monitor="val_output_1_sparse_categorical_accuracy",
-                verbose=0,
-            ),
-            ReduceLROnPlateau(
-                monitor="output_1_sparse_categorical_accuracy",
-                patience=7,
-                factor=0.3,
-                min_lr=5e-5,
-            ),
-            EarlyStopping(
-                monitor="output_1_sparse_categorical_accuracy",
-                patience=10,
-                restore_best_weights=True,
-            ),
+        """Get the callbacks for the model training.
+
+        The configs have to be set in the config .yml file; the callbacks are
+        then instantiated here with the respective configs.
+        """
+        return [
+            getattr(callbacks, name)(**configs)
+            for name, configs in self.config["callbacks"].items()
         ]
-        return callbacks
 
     def train(
         self,
@@ -188,11 +180,12 @@ class TrainingPipeline:
         x, y = self._load_training_data()
         self._load_and_compile_model()
 
-        if weights_file_location is None:
-            path = f"./model/trained_models/{self.model_type}"
-            os.makedirs(path, exist_ok=True)
-            weights_file_location = f"{path}/weights"
-        logger.debug(f"Saving model to {weights_file_location}.")
+        if save_weights:
+            if weights_file_location is None:
+                path = f"./model/trained_models/{self._model_type}"
+                os.makedirs(path, exist_ok=True)
+                weights_file_location = f"{path}/weights"
+            logger.info(f"The trained model will be saved to {weights_file_location}.")
 
         if previous_weights_path is not None:
             self.model.load_weights(previous_weights_path)
@@ -223,3 +216,24 @@ class TrainingPipeline:
         plt.ylabel("Accuracy")
         plt.legend()
         plt.show()
+
+    def __create_output_folder(self):
+        directory = "./model/architecture"
+        os.makedirs(directory, exist_ok=True)
+        self.output_directory = directory
+
+    def __save_model_summary(self):
+        """Write out the summary of the model as a .txt file."""
+        self.__create_output_folder()
+        with open(f"{self.output_directory}/chord_model.txt", "w") as fh:
+            self.model.access_model().summary(print_fn=lambda x: fh.write(x + "\n"))
+
+    def __save_model_architecture_as_image(self):
+        """Save the model architecture to a .png image."""
+        self.__create_output_folder()
+        tf.keras.utils.plot_model(
+            self.model.access_model(),
+            f"{self.output_directory}/harmony_model.png",
+            show_shapes=True,
+            show_dtype=True,
+        )
