@@ -24,7 +24,7 @@ repos:
         exclude: "__init__.py"
 
   - repo: https://github.com/psf/black # Black auto formatting.
-    rev: 21.12b0
+    rev: 22.6.0
     hooks:
       - id: black
         exclude: "^(notebooks/)"
@@ -33,7 +33,7 @@ repos:
     rev: 3.9.2
     hooks:
       - id: flake8
-        args: ["--max-line-length=100", "--ignore=E203,W503,F821,F811,F401"]
+        args: ["--max-line-length=88", "--ignore=E203,W503,F821,F811,F401"]
         exclude: "^(.*/__init__.py)"
 
   - repo: local
@@ -49,7 +49,7 @@ repos:
               "--jobs=4",
               "--good-names=i,j,k,v,_,x,y,X,Y,X_train,X_test,df",
               "--fail-under=8.5",
-              "--disable=similarities,logging-fstring-interpolation,import-error,wrong-import-order,C0330,logging-fstring-interpolation,E0611,E1130,W0613"
+              "--disable=similarities,logging-fstring-interpolation,import-error,wrong-import-order,C0330,W0221,logging-fstring-interpolation,E0611,E1130,W0613,E1136"
           ]
         exclude: "tests/"
       - id: pylint
@@ -61,11 +61,11 @@ repos:
           [
               "-rn",
               "--fail-under=8.5",
-              "--disable=similarities,logging-fstring-interpolation,redefined-outer-name,no-self-use,too-many-public-methods,too-few-public-methods,import-error,wrong-import-order,C0330,logging-fstring-interpolation",
+              "--disable=C0116,import-error,no-self-use,W0212",
               "--good-names=i,j,k,v,_,x,y,X,Y,X_train,X_test",
               "--jobs=4",
           ]
-        exclude: "jazz-rnn/"
+        exclude: "rnn/"
 
   - repo: https://github.com/pycqa/pydocstyle
     rev: 6.1.1
