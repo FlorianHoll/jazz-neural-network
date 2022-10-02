@@ -1,5 +1,4 @@
-"""The neural network that will write the harmony."""
-import numpy as np
+"""The neural network that will write the melody."""
 import tensorflow as tf
 from tensorflow.keras.layers import BatchNormalization
 from tensorflow.keras.layers import Concatenate
@@ -10,24 +9,31 @@ from rnn.model.layers import DenseWithProcessing
 from rnn.model.layers import OutputDense
 
 
-class ChordModel(tf.keras.Model):
+class MelodyModel(tf.keras.Model):
     """
-    The chord neural network.
+    The melody neural network.
 
-    The job of the network is to learn the harmony of jazz songs.
+    The job of the network is to learn how the harmony relates to the
+    melody and to write melodies when given the chord.
     This is done by giving the network harmony snippets of a given
-    length (input_length) and then letting it predict the next
+    length (input_length) that contain both the previous melody notes
+    as well as the current chord and then letting it predict the next
     chord, given the previous chords.
 
     The architecture of the model is as follows:
 
-    -   There are three inputs: The chords, their durations and their
-        offsets.
+    -   There are seven inputs: The melody notes, their durations, their
+        offsets and the chord notes (four notes).
 
-    -   The chords are passed through an embedding layer.
+    -   The melody and chord notes are passed through an shared embedding
+        layer. This is done for the network to understand the relation
+        between the chords, i.e. the current harmony, and the melody
+        that is played on top. This will be used in writing songs later
+        on: First, the harmony will be created; then, the melody will be
+        written with this harmony.
 
-    -   The embedded chords are concatenated with the (not embedded)
-        durations and offsets.
+    -   The embedded notes (melody & chord notes) are concatenated with the
+        (not embedded) durations and offsets.
 
     -   This concatenated information is fed to a Gated Recurrent Unit (GRU).
 
@@ -57,10 +63,10 @@ class ChordModel(tf.keras.Model):
         gru_dropout_rate: float = 0.2,
     ) -> None:
         """Initialize the harmony model."""
-        super(ChordModel, self).__init__()
+        super(MelodyModel, self).__init__()
 
         # Embedding
-        self.chord_embeddings = Embedding(
+        self.pitch_embedding = Embedding(
             106, embedding_dimension, input_length=input_length
         )
 
@@ -73,27 +79,47 @@ class ChordModel(tf.keras.Model):
             gru_size, dropout=gru_dropout_rate, recurrent_dropout=gru_dropout_rate
         )
 
-        # Dense layers before the output layers
         self.dense_chord = DenseWithProcessing(dense_size, dropout_rate)
         self.dense_duration = DenseWithProcessing(dense_size, dropout_rate)
 
         # Output layers
-        self.chord_output = OutputDense(60)
+        self.melody_output = OutputDense(60)
         self.duration_output = OutputDense(49)
 
-    def call(self, inputs: list[np.ndarray]):
+    def call(self, inputs):
         """
         Call the model, i.e. its models forward pass.
 
-        :param inputs: The inputs (chords, durations, and offsets).
-        :return: The predicted chords and durations.
+        :param inputs: The inputs (chords, durations, offsets, and chord notes).
+        :return: The predicted melody notes and durations.
         """
-        chord_input, duration_input, offset_input = inputs
+        pitch_input, duration_input, offset_input, note1, note2, note3, note4 = inputs
+
+        chord_notes = [note1, note2, note3, note4]
+
         duration_input = tf.expand_dims(duration_input, axis=2)
         offset_input = tf.expand_dims(offset_input, axis=2)
 
-        embedding = self.chord_embeddings(chord_input)
-        x = self.concatenate([embedding, duration_input, offset_input])
+        embedding = self.pitch_embedding(pitch_input)
+
+        # The chord notes are fed through the same embedding as the pitch heights
+        #   since they both are notes and have a very close relationship (mostly,
+        #   melody notes are notes that are also in the chord).
+        note1_emb, note2_emb, note3_emb, note4_emb = [
+            self.pitch_embedding(note) for note in chord_notes
+        ]
+
+        x = self.concatenate(
+            [
+                embedding,
+                duration_input,
+                offset_input,
+                note1_emb,
+                note2_emb,
+                note3_emb,
+                note4_emb,
+            ]
+        )
 
         x = self.batch_norm(x)
         gru = self.gru(x)
@@ -101,7 +127,7 @@ class ChordModel(tf.keras.Model):
         dense_chord = self.dense_chord(gru)
         dense_duration = self.dense_duration(gru)
 
-        chord_output = self.chord_output(dense_chord)
+        chord_output = self.melody_output(dense_chord)
         duration_output = self.duration_output(dense_duration)
 
         return chord_output, duration_output
@@ -109,9 +135,9 @@ class ChordModel(tf.keras.Model):
     def access_model(self):
         """Workaround to plot and summarize the model.
 
-        For some reason, this does not work for the "plain" subclassed
-        Keras model; therefore, this method is implemented to access things
-        like the number of layers, a plot of the model architecture etc.
+        Subclassed models in Keras cannot be accessed as easily; therefore,
+        therefore, this method is implemented to access things like the
+        number of layers, a plot of the model architecture etc.
         """
-        inputs = [tf.keras.Input(shape=8) for _ in range(3)]
+        inputs = [tf.keras.Input(shape=8) for _ in range(7)]
         return tf.keras.Model(inputs=inputs, outputs=self.call(inputs))
