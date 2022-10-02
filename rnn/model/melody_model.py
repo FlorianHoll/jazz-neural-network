@@ -10,7 +10,48 @@ from rnn.model.layers import OutputDense
 
 
 class MelodyModel(tf.keras.Model):
-    """Melody model."""
+    """
+    The melody neural network.
+
+    The job of the network is to learn how the harmony relates to the
+    melody and to write melodies when given the chord.
+    This is done by giving the network harmony snippets of a given
+    length (input_length) that contain both the previous melody notes
+    as well as the current chord and then letting it predict the next
+    chord, given the previous chords.
+
+    The architecture of the model is as follows:
+
+    -   There are seven inputs: The melody notes, their durations, their
+        offsets and the chord notes (four notes).
+
+    -   The melody and chord notes are passed through an shared embedding
+        layer. This is done for the network to understand the relation
+        between the chords, i.e. the current harmony, and the melody
+        that is played on top. This will be used in writing songs later
+        on: First, the harmony will be created; then, the melody will be
+        written with this harmony.
+
+    -   The embedded notes (melody & chord notes) are concatenated with the
+        (not embedded) durations and offsets.
+
+    -   This concatenated information is fed to a Gated Recurrent Unit (GRU).
+
+    -   From here, the network branches into two branches that are both
+        essentially multilayer perceptrons: Both branches have one dense
+        layer (with relu activation) and one output dense layer (with
+        softmax activation).
+
+    :param embedding_dimension: The dimension that the chord embedding
+        shall have.
+    :param input_length: The length of ONE input sequence that the
+        network receives.
+    :param embedding_dimension: The number of dimensions to embed
+        the chords in.
+    :param gru_size: The size of the Gated Recurrent Unit.
+    :param dense_size: The size of the dense layer.
+    :param gru_dropout_rate: The dropout rate in the Gated Recurrent Unit.
+    """
 
     def __init__(
         self,
