@@ -82,7 +82,7 @@ class ChordModel(tf.keras.Model):
 
     def call(self, inputs: list[np.ndarray]):
         """
-        Define the models forward pass.
+        Call the model, i.e. its models forward pass.
 
         :param inputs: The inputs (chords, durations, and offsets).
         :return: The predicted chords and durations.
