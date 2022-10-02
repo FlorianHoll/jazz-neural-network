@@ -7,10 +7,24 @@ from rnn.music._chord_utils import _chord_symbol_to_neural_net_representation
 from rnn.music._chord_utils import _chord_type_to_compatible_chord
 from rnn.music._chord_utils import _chord_types_to_numbers
 from rnn.music._chord_utils import _neural_net_representation_to_chord_symbol
+from rnn.music._key_utils import _key_to_sharps
 from rnn.music._key_utils import _sharps_to_key_signature_symbol
 from rnn.music._note_utils import _midi_number_to_note_symbol
 from rnn.music._note_utils import _NEURAL_NET_TRANSFORM_SCALING
 from rnn.music._note_utils import _note_symbol_to_number
+
+
+def key_symbol_to_sharps(key: str) -> int:
+    """Convert a key symbol to the corresponding amount of sharps or flats.
+
+    Positive values correspond to sharps, negative ones to flats. C major is
+    therefore 0, Eb major -3, D major 2.
+    This is needed for the prediction to convert a song into the desired key.
+
+    :param key: The key to convert.
+    :return: The sharps or flats of the key.
+    """
+    return _key_to_sharps[key]
 
 
 def sharps_to_key_signature_symbol(number_sharps: int) -> tuple[str]:
