@@ -5,6 +5,7 @@ be used to represent them all in one framework to parse the data
 as a sensible input to the neural network.
 """
 import abc
+import warnings
 from typing import Union
 
 import numpy as np
@@ -136,7 +137,7 @@ class RestElement(MusicalElement):
         """
         Construct a RestElement from a pitch height.
 
-        Since a RestElement does not have a pitch height, the parameters
+        Since a RestElement does not have a pitch height, the parameter
         is ignored.
         """
         return cls(duration, offset)
@@ -273,7 +274,12 @@ class Note(MusicalElement):
     """
 
     def __init__(self, pitch_height: int, duration: int = 12, offset: int = 0) -> None:
-        """Initialize the Note."""
+        """Initialize the Note.
+
+        In the initializer of the parent class, the setter checks
+        will take place, leading to errors if the note is not
+        initialized properly.
+        """
         self.pitch_height = pitch_height
         super().__init__(duration, offset)
 
@@ -372,8 +378,9 @@ class Note(MusicalElement):
     def octave(self) -> int:
         """Get the octave of the note.
 
-        Since 60 = C4, we need to do a floor division
-        and then subtract one. (e.g. 65 (=F4) // 12 = 5 - 1 = 4).
+        This means a floor division by 12.
+        Since 60 = C4, we need to subtract one to get the
+        octave (e.g. 65 (=F4) // 12 = 5; 5 - 1 = 4).
         """
         return self.pitch_height // 12 - 1
 
@@ -420,6 +427,13 @@ class Note(MusicalElement):
             raise ValueError(
                 "Cannot transpose; resulting pitch height(s) values "
                 "would be outside the playable range."
+            )
+        resulting_neural_net_repr = note_to_neural_net_representation(new_pitch_height)
+        if resulting_neural_net_repr <= 0:
+            warnings.warn(
+                f"The note that is being transposed ({self}) will have a "
+                f"neural net representation of < 0 ({resulting_neural_net_repr})"
+                f"by transposing it by {steps} steps."
             )
 
     def transpose(self, steps: int):
@@ -482,7 +496,12 @@ class Chord(MusicalElement):
     """
 
     def __init__(self, notes: list[Note], duration: int = 12, offset: int = 0) -> None:
-        """Initialize the Chord."""
+        """Initialize the Chord.
+
+        In the initializer of the parents, the setter checks
+        will take place - if the input is not valid, an error
+        will be raised.
+        """
         self.notes = notes
         super().__init__(duration, offset)
         self.pitch_height = np.array([note.pitch_height for note in notes])
@@ -542,8 +561,8 @@ class Chord(MusicalElement):
         """
         if np.all(pitch_height == np.zeros(4)):
             return RestChord(duration, offset)
-        # Overwrite duration and offset of the individual notes with the one
-        #   from the chord.
+        # Overwrite duration and offset of the individual
+        #   notes with the given parameter.
         notes = [
             Note.from_pitch_height(pitch, duration, offset) for pitch in pitch_height
         ]
@@ -569,7 +588,7 @@ class Chord(MusicalElement):
         """
         if not isinstance(neural_net_representation, int):
             raise TypeError(
-                "The neural net representation must be an integer" "between 0 and 60."
+                "The neural net representation must be an integer between 0 and 60."
             )
         if neural_net_representation == 0:
             return RestChord(duration, offset)
@@ -651,8 +670,8 @@ class Chord(MusicalElement):
     def symbol(self) -> str:
         """Get the chord symbol."""
         root = self.root_note.pitch_height
-        functional_notes = [note.pitch_height - root for note in self.notes]
-        chord_type = functional_chord_notes_to_chord_symbol(np.array(functional_notes))
+        functional_notes = np.array([note.pitch_height - root for note in self.notes])
+        chord_type = functional_chord_notes_to_chord_symbol(functional_notes)
         return f"{self.root_note.symbol[:-1]} {chord_type}"
 
     @property
@@ -683,7 +702,8 @@ class Chord(MusicalElement):
 
         A chord is the same if the notes that it consists of are the same.
         Therefore, we simply compare if all notes are the same. If so, the
-        chords are the same.
+        chords are the same. Since the notes incorporate the duration and
+        the offset of the chord, this doesn't have to be checked separately.
         """
         if isinstance(other, Chord):
             return all(

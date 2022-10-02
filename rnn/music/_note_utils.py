@@ -27,4 +27,4 @@ _midi_number_to_note_symbol = {
     value: key for key, value in _note_symbol_to_number.items()
 }
 
-_NEURAL_NET_TRANSFORM_SCALING = 48
+_NEURAL_NET_TRANSFORM_SCALING = 36

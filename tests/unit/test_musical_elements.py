@@ -2,6 +2,7 @@
 import numpy as np
 import pytest
 
+from rnn.music._note_utils import _NEURAL_NET_TRANSFORM_SCALING
 from rnn.music.musical_elements import Chord
 from rnn.music.musical_elements import Note
 
@@ -102,7 +103,7 @@ class TestNote:
             (Note(60, 12, 0), Note(60, 12, 12), False),
             (
                 Note.from_neural_net_representation(12, 12, 0),
-                Note(12 + 48, 12, 0),
+                Note(12 + _NEURAL_NET_TRANSFORM_SCALING, 12, 0),
                 True,
             ),
         ],
