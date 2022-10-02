@@ -48,6 +48,10 @@ data/
 tmp/
 venv/
 
+# weights and information that is not needed
+rnn/model/architecture/
+rnn/model/partly_trained_models/
+
 # symlinks
 **/__pycache__
 
