@@ -235,5 +235,4 @@ class TrainingPipeline:
             self.model.access_model(),
             f"{self.output_directory}/{self._model_type}_model.png",
             show_shapes=True,
-            show_dtype=True,
         )
