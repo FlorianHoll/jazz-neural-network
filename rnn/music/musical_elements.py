@@ -586,7 +586,9 @@ class Chord(MusicalElement):
         :param offset: The offset of the chord (on the same scale as the duration).
         :return: A Chord instance.
         """
-        if not isinstance(neural_net_representation, int):
+        try:
+            neural_net_representation = int(neural_net_representation)
+        except ValueError:
             raise TypeError(
                 "The neural net representation must be an integer between 0 and 60."
             )

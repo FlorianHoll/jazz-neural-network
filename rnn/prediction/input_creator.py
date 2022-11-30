@@ -7,10 +7,11 @@ import numpy as np
 from rnn.music import Note
 from rnn.music.song import HarmonySongParser
 from rnn.music.song import MelodySongParser
+from rnn.music.song import SongParser
 
 
-class MelodyInputCreator(MelodySongParser):
-    """Create a melody input for the neural net."""
+class InputCreator(SongParser):
+    """Create an input for the neural net."""
 
     def __init__(
         self,
@@ -27,6 +28,19 @@ class MelodyInputCreator(MelodySongParser):
         self.key = key
         self.input_length = input_length
         self.last_measures = last_measures
+
+    def _find_transposing_steps(self):
+        """Find the number of transposing steps necessary to get to the desired key."""
+        major = self.key_signature[-1] != "m"
+        key_symbol = self.key_signature[0] if major else self.key_signature[0][:-1]
+        current_key = Note.from_symbol(f"{key_symbol}4").pitch_height
+        target_key = Note.from_symbol(f"{self.key.split()[0]}4").pitch_height
+        transposing_steps = target_key - current_key
+        return transposing_steps
+
+
+class MelodyInputCreator(InputCreator, MelodySongParser):
+    """Create a melody input for the neural net."""
 
     def get_neural_net_input(self):
         """Get the input for the neural net."""
@@ -51,13 +65,40 @@ class MelodyInputCreator(MelodySongParser):
             chord.transpose(transposing_steps).pitch_neural_net_representation
             for chord in transposed_chords
         ]
-        return np.vstack([np.array([notes, durations, offsets]), np.array(chords).T])
+        chord_note_1, chord_note_2, chord_note_3, chord_note_4 = chords
+        return np.vstack(
+            [
+                np.array(
+                    [
+                        notes,
+                        durations,
+                        offsets,
+                        chord_note_1,
+                        chord_note_2,
+                        chord_note_3,
+                        chord_note_4,
+                    ]
+                )
+            ]
+        )
+        # return np.vstack([np.array([notes, durations, offsets]), np.array(chords).T])
 
-    def _find_transposing_steps(self):
-        """Find the number of transposing steps necessary to get to the desired key."""
-        major = self.key_signature[-1] != "m"
-        key_symbol = self.key_signature[0] if major else self.key_signature[0][:-1]
-        current_key = Note.from_symbol(f"{key_symbol}4").pitch_height
-        target_key = Note.from_symbol(f"{self.key.split()[0]}4").pitch_height
-        transposing_steps = target_key - current_key
-        return transposing_steps
+
+class HarmonyInputCreator(InputCreator, HarmonySongParser):
+    """Create a harmony input for the neural net."""
+
+    def get_neural_net_input(self):
+        """Get the input for the neural net."""
+        self.parse()
+        transposing_steps = self._find_transposing_steps()
+        if self.last_measures:
+            relevant_chord_part = self.harmony_representation[-self.input_length :]
+        else:
+            relevant_chord_part = self.harmony_representation[: self.input_length]
+        transposed_chords = [
+            chord.transpose(transposing_steps) for chord in relevant_chord_part
+        ]
+        chords = [chord.neural_net_representation for chord in transposed_chords]
+        durations = [chord.duration for chord in transposed_chords]
+        offsets = [chord.offset for chord in transposed_chords]
+        return np.array([chords, durations, offsets])
