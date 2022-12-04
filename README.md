@@ -93,5 +93,77 @@ that the amount of training data is twelve times the original data. Furthermore,
 ensures that the network will later be able to write songs in each key.
 
 ## Model architecture
-The models are both Recurrent Neural Networks. Specifically, the architecture is as
-follows:
+The models are both Recurrent Neural Networks. Specifically, the high-level architecture
+is as follows:
+* There are input nodes (one for the main property, i.e. the note or chord), one
+  for its duration and one for its offset.
+* Embedding is applied on the main property.
+* All information (the embedded properties, the durations, the offsets) are concatenated.
+* The concatenated information is fed into a Gated Reccurent Unit.
+* From this GRU, two branches diverge:
+  * One for the main property prediction
+  * Another one for the duration prediction
+
+The archictecture in detail:
+### Chord model architecture
+For the chord model, the architecture is as follows:
+
+![Chord model architecture](./rnn/model/architecture/harmony_model.png)
+
+* The input consists of the chord (left input) as well as the duration and the offset
+  (middle and right). *Note: The sequence length is 8 in this case; it can be any
+  positive integer though.*
+* The chord is passed through an Embedding layer; the durations and offsets are
+  expanded on a dimension to be able to concatenate the information in the next step.
+* The embedded chords and (non-embedded) durations and offets are concatenated.
+* Batch normalization is applied.
+* The concatenated and batch-normalized information is given to a
+  Gated Reccurent Unit of flexible size.
+* The resulting weights are passed to two branches:
+  * One branch deals with the chords, i.e. which chord is predicted: Here, the GRU
+    result is batch-normalized, given to a Dense Layer with ReLU activation and
+    drop-out is applied. Afterwards, batch-normalization is applied again and finally,
+    the result is passed to an Output Layer with Softmax Activation and 49 output
+    neurons (0 = N.C.; 1-48: The four possible chords for each of the twelve keys
+    (12*4 = 48)).
+  * The other branch predicts the duration of the predicted chord; here, the same
+    architecture applies.
+
+### Melody model architecture:
+The melody model is structured very similarly:
+
+![Melody model architecture](./rnn/model/architecture/melody_model.png)
+
+* The input consists of:
+  * The note
+  * The duration
+  * The offset
+  * The four notes of the chords that is played at the time of the note being played
+    (each note is passed individually, i.e. four input nodes).
+* The note as well as the four chord notes are all passed through the same Embedding
+  layer. This is done so that the network learns that the melody and chord notes are
+  closely related; in fact, often, the melody note is one of the chord notes. The
+  durations and offsets are not embedded but expanded.
+* All embedded notes, the duration and offset are concatenated.
+* The concatenated information is batch-normalized and passed through a GRU.
+* The result is split into two branches:
+  * The first branch predicts the note. Here, the input is batch-normalized and passed
+    through a Dense Layer with ReLU activation and dropout applied after the layer and
+    is finally passed to an Output Layer with Softmax activation.
+  * The second branch predicts the duration of the note. The same architecture applies.
+
+## Training
+The training pipeline can be started by starting the `rnn/training/train_model.py`
+file with a .yml config that includes all relevant information needed for training
+the model. In this file, the following things can be handed:
+* The model architecture
+* Compile information
+* Training configurations
+* Callbacks
+See the file `./rnn/training/configs/harmony/harmony_model_basic_config.yml` for an
+example of a model configuration.
+
+The training process can then be started by calling:
+```{bash}
+python ./rnn/training/train_model.py --config_path ./configs/harmony/harmony_model_basic_config.yml
+```
