@@ -11,7 +11,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 import tensorflow.keras.callbacks as callbacks
-import yaml
 
 from rnn.model.chord_model import ChordModel
 from rnn.model.melody_model import MelodyModel
@@ -93,7 +92,7 @@ class TrainingPipeline:
         :param parallelize: Parallelize the parsing of the training songs?
         :return: The neural net input sequences (x) and the target (y).
         """
-        files = glob.glob("../data/*.xml")
+        files = glob.glob("../../data/*.xml")
 
         logger.info("Starting to parse all the training songs.")
         if parallelize:
