@@ -160,8 +160,46 @@ the model. In this file, the following things can be handed:
 * Compile information
 * Training configurations
 * Callbacks
-See the file `./rnn/training/configs/harmony/harmony_model_basic_config.yml` for an
-example of a model configuration.
+
+Example of a config file:
+```yaml
+model_type: harmony
+
+architecture:
+  input_length: 8
+  dropout_rate: 0.4
+  embedding_dimension: 24
+  gru_size: 256
+  dense_size: 128
+  gru_dropout_rate: 0.3
+
+compile_info:
+  optimizer: Adam
+  loss:
+    harmony: SparseCategoricalCrossentropy
+    duration: SparseCategoricalCrossentropy
+  save_architecture_summary: True
+  save_architecture_image: True
+
+training:
+  epochs: 40
+  validation_split: 0.2
+  save_weights: True
+
+callbacks:
+  ModelCheckpoint:
+    monitor: output_1_sparse_categorical_accuracy
+    filepath: ./model/partly_trained_models/harmony/weights
+  EarlyStopping:
+    monitor: output_1_sparse_categorical_accuracy
+    patience: 10
+    restore_best_weights: True
+  ReduceLROnPlateau:
+    monitor: output_1_sparse_categorical_accuracy
+    patience: 7
+    factor: 0.3
+    min_lr: 5e-5
+```
 
 The training process can then be started by calling:
 ```{bash}
