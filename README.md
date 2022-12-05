@@ -161,7 +161,7 @@ the model. In this file, the following things can be handed:
 * Training configurations
 * Callbacks
 
-Example of a config file:
+Example of a config file (in this case, for the harmony model):
 ```yaml
 model_type: harmony
 
