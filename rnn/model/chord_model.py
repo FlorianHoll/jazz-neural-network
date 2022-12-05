@@ -78,7 +78,7 @@ class ChordModel(tf.keras.Model):
         self.dense_duration = DenseWithProcessing(dense_size, dropout_rate)
 
         # Output layers
-        self.chord_output = OutputDense(60)
+        self.chord_output = OutputDense(49)
         self.duration_output = OutputDense(49)
 
     def call(self, inputs: list[np.ndarray]):
