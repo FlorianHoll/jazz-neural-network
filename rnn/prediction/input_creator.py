@@ -90,6 +90,7 @@ class HarmonyInputCreator(InputCreator, HarmonySongParser):
     def get_neural_net_input(self):
         """Get the input for the neural net."""
         self.parse()
+        self._calculate_chord_durations()
         transposing_steps = self._find_transposing_steps()
         if self.last_measures:
             relevant_chord_part = self.harmony_representation[-self.input_length :]
