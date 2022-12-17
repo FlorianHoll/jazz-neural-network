@@ -376,13 +376,16 @@ class HarmonySongParser(SongParser):
         for element in elements:
             # First, find out if the element is a note or a harmony symbol.
             if element.name == "note":
-                note_duration = int(element.find("duration").string)
+                note_duration = (
+                    int(element.find("duration").string) * self.duration_multiplier
+                )
                 # The offset must be updated to keep track of the position
                 #   of the measure that is currently being parsed.
                 offset += note_duration
             else:
                 harmony = self._parse_one_harmony_symbol(element, offset)
                 self.harmony_representation.append(harmony)
+        assert offset == 48
 
     def _convert_and_augment_training_data(
         self, input_length: int, target_length: int
