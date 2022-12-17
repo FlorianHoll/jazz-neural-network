@@ -10,6 +10,7 @@ _note_symbol_to_number = {
     "D#": 3,
     "Fb": 4,
     "E": 4,
+    "E#": 5,
     "F": 5,
     "Gb": 6,
     "F#": 6,
