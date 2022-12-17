@@ -97,7 +97,7 @@ class TrainingPipeline:
         logger.info("Starting to parse all the training songs.")
         if parallelize:
             tasks = [(file, self.parser, self.input_length) for file in files]
-            with Pool(os.cpu_count()) as pool:
+            with Pool(os.cpu_count() - 1) as pool:
                 nn_input = pool.starmap(_parse_one_song, tasks, chunksize=5)
         else:
             nn_input = [
@@ -141,9 +141,9 @@ class TrainingPipeline:
         )
         logger.info("Model successfully compiled.")
         if compile_config.get("save_architecture_summary", False):
-            self.__save_model_summary()
+            self._save_model_summary()
         if compile_config.get("save_architecture_image", False):
-            self.__save_model_architecture_as_image()
+            self._save_model_architecture_as_image()
 
     def _get_callbacks(self):
         """Get the callbacks for the model training.
@@ -216,20 +216,20 @@ class TrainingPipeline:
         plt.legend()
         plt.show()
 
-    def __create_output_folder(self):
-        directory = "./model/architecture"
+    def _create_output_folder(self):
+        directory = "../model/architecture"
         os.makedirs(directory, exist_ok=True)
         self.output_directory = directory
 
-    def __save_model_summary(self):
+    def _save_model_summary(self):
         """Write out the summary of the model as a .txt file."""
-        self.__create_output_folder()
+        self._create_output_folder()
         with open(f"{self.output_directory}/{self._model_type}_model.txt", "w") as fh:
             self.model.access_model().summary(print_fn=lambda x: fh.write(x + "\n"))
 
-    def __save_model_architecture_as_image(self):
+    def _save_model_architecture_as_image(self):
         """Save the model architecture to a .png image."""
-        self.__create_output_folder()
+        self._create_output_folder()
         tf.keras.utils.plot_model(
             self.model.access_model(),
             f"{self.output_directory}/{self._model_type}_model.png",
