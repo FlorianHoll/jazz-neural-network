@@ -207,7 +207,7 @@ class SongParser:
         #   the durations of the notes to update the offset obviously does not work.
         new_offset = harmony.find("offset")
         if new_offset is not None:
-            offset += int(new_offset.string)
+            offset += int(new_offset.string) * self.duration_multiplier
 
         if chord_type == "N.C.":
             chord_to_add = RestChord(offset=offset)
