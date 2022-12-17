@@ -3,6 +3,7 @@ import numpy as np
 
 from rnn.model.chord_model import ChordModel
 from rnn.model.melody_model import MelodyModel
+from rnn.prediction.beam_search import BeamSearch
 from rnn.prediction.input_creator import HarmonyInputCreator
 from rnn.prediction.input_creator import MelodyInputCreator
 
@@ -24,12 +25,10 @@ class PredictionPipeline:
     def predict(self):
         """Predict from the trained model."""
         nn_input = self.input_creator.get_neural_net_input()
-        start_input = list(np.expand_dims(nn_input, 1).astype(float))
-        return start_input
-        # y = BeamSearch(
-        #     self.model, self.key, self.nr_measures, start_input
-        # )
-        # return y
+        # start_input = list(np.expand_dims(nn_input, 1).astype(float))
+        # return start_input
+        y = BeamSearch(self.model).predict(nn_input.astype(float))
+        return y
 
     def write_out_as_xml(self):
         """Write out the resulting song as a .xml file."""
@@ -42,7 +41,8 @@ class ChordModelPredictionPipeline(PredictionPipeline):
         """Initialize the chord prediction pipeline."""
         super().__init__(key, nr_measures)
         self.model = ChordModel()
-        self.model.load_weights(weights_location)
+        self.model.compile()
+        self.model.load_weights(f"{weights_location}/weights")
         self.input_creator = HarmonyInputCreator(self.key)
         # self.chord_model.load_weights("../model/trained_models/harmony/weights")
 
@@ -54,6 +54,13 @@ class MelodyModelPredictionPipeline(PredictionPipeline):
         """Initialize the chord prediction pipeline."""
         super().__init__(key, nr_measures)
         self.model = MelodyModel()
+        self.model.compile()
         self.model.load_weights(weights_location)
         self.input_creator = MelodyInputCreator(self.key)
         # self.chord_model.load_weights("../model/trained_models/harmony/weights")
+
+
+if __name__ == "__main__":
+    ChordModelPredictionPipeline(
+        "C min", "../training/model/trained_models/harmony"
+    ).predict()
