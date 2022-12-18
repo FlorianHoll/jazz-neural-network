@@ -21,14 +21,14 @@ class GreedySearch:
         self.composition = None
         self.seq_length = seq_length
 
-    def predict(self, start_input: np.ndarray, nr_measures: int = 32) -> np.ndarray:
+    def predict(self, start_input: np.ndarray, nr_measures: int) -> np.ndarray:
         """Predict some number of measures, given a start input."""
         self.composition = start_input
 
         for measure in range(nr_measures):
             print(measure)
             self._predict_one_measure()
-        return self.composition[self.seq_length :]
+        return self.composition[:, self.seq_length :]
 
     def _predict_one_measure(self) -> None:
         """Predict one measure.
