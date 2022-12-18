@@ -1,8 +1,10 @@
 """A pipeline for predicting, i.e. for writing a song."""
+import music21 as m21
 import numpy as np
 
 from rnn.model.chord_model import ChordModel
 from rnn.model.melody_model import MelodyModel
+from rnn.music import Chord
 from rnn.prediction.beam_search import BeamSearch
 from rnn.prediction.greedy_search import GreedySearch
 from rnn.prediction.input_creator import HarmonyInputCreator
@@ -28,7 +30,7 @@ class PredictionPipeline:
         nn_input = self.input_creator.get_neural_net_input()
         # start_input = list(np.expand_dims(nn_input, 1).astype(float))
         # return start_input
-        y = GreedySearch(self.model).predict(nn_input.astype(float))
+        y = GreedySearch(self.model).predict(nn_input.astype(float), self.nr_measures)
         return y
 
     def write_out_as_xml(self, song: np.ndarray):
@@ -71,3 +73,11 @@ class MelodyModelPredictionPipeline(PredictionPipeline):
         self.model.load_weights(weights_location)
         self.input_creator = MelodyInputCreator(self.key, file=filename)
         # self.chord_model.load_weights("../model/trained_models/harmony/weights")
+
+
+if __name__ == "__main__":
+    p = ChordModelPredictionPipeline(
+        "C min7", "../training/model/trained_models/harmony", 10
+    )
+    song = p.predict()
+    p.write_out_as_xml(song)
