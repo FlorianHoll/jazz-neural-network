@@ -30,7 +30,7 @@ callbacks:
     monitor: output_1_sparse_categorical_accuracy
     patience: 7
     factor: 0.3
-    min_lr: 5e-5
+    min_lr: .0005
   ModelCheckpoint:
     monitor: output_1_sparse_categorical_accuracy
     filepath: ./model/partly_trained_models/melody/weights
