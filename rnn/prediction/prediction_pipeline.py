@@ -8,6 +8,7 @@ from rnn.model.melody_model import MelodyModel
 from rnn.music import Chord
 from rnn.music.song import HarmonySongParser
 from rnn.prediction.greedy_search import GreedySearch
+from rnn.prediction.greedy_search import MelodyGreedySearch
 from rnn.prediction.input_creator import HarmonyInputCreator
 from rnn.prediction.input_creator import MelodyInputCreator
 
@@ -15,7 +16,7 @@ from rnn.prediction.input_creator import MelodyInputCreator
 class SongPredictor:
     """Pipeline for predicting a song from the trained models."""
 
-    DEFAULT_WEIGHT_LOCATION = "../training/model/trained_models/"
+    DEFAULT_WEIGHT_LOCATION = "../training/model/trained_models"
 
     def __init__(
         self,
@@ -83,7 +84,7 @@ class SongPredictor:
         harmony = np.vstack(
             [
                 harmony,
-                np.cumsum([harmony[-1, :]]),
+                np.cumsum([harmony[1, :]]) - harmony[1, 0],
             ]
         )
         return harmony
@@ -94,7 +95,7 @@ class SongPredictor:
         model.load_weights(f"{self.chord_model_weights_location}/weights")
         input_creator = MelodyInputCreator(self.key, file=self.filename)
         nn_input = input_creator.get_neural_net_input().astype(float)
-        melody = GreedySearch(
+        melody = MelodyGreedySearch(
             model=model,
             start_input=nn_input,
             nr_measures=self.nr_measures,

@@ -65,23 +65,18 @@ class MelodyInputCreator(InputCreator, MelodySongParser):
             chord.transpose(transposing_steps).pitch_neural_net_representation
             for chord in transposed_chords
         ]
-        chord_note_1, chord_note_2, chord_note_3, chord_note_4 = chords
-        return np.vstack(
+        chord_note_1, chord_note_2, chord_note_3, chord_note_4 = np.array(chords).T
+        return np.array(
             [
-                np.array(
-                    [
-                        notes,
-                        durations,
-                        offsets,
-                        chord_note_1,
-                        chord_note_2,
-                        chord_note_3,
-                        chord_note_4,
-                    ]
-                )
+                notes,
+                durations,
+                offsets,
+                chord_note_1,
+                chord_note_2,
+                chord_note_3,
+                chord_note_4,
             ]
         )
-        # return np.vstack([np.array([notes, durations, offsets]), np.array(chords).T])
 
 
 class HarmonyInputCreator(InputCreator, HarmonySongParser):

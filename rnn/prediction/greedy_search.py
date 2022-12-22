@@ -35,7 +35,7 @@ class GreedySearch:
         self.chords = chords
 
     @property
-    def cumulated_duration_of_predicted_notes(self):
+    def summed_duration_of_predicted_notes(self):
         """Return the cumulated duration of all predicted notes.
 
         This is needed for the tracking of the chords (the cumulated duration
@@ -43,7 +43,7 @@ class GreedySearch:
         right now. Based on this, the current chord that a note is played over
         can be found out).
         """
-        return np.cumsum(self.composition[1, self.seq_length :])
+        return np.sum(self.composition[1, self.seq_length :])
 
     def predict(self) -> np.ndarray:
         """Predict some number of measures, given a start input."""
@@ -113,7 +113,7 @@ class MelodyGreedySearch(GreedySearch):
             np.expand_dims(self.composition[:, -self.seq_length :], 1)
         )
         relevant_chords = self.chords[
-            0, self.chords[3, :] <= self.cumulated_duration_of_predicted_notes
+            0, self.chords[3, :] <= self.summed_duration_of_predicted_notes
         ]
         chord = Chord.from_neural_net_representation(relevant_chords[-1])
         current_chord = list(np.expand_dims(chord.pitch_neural_net_representation, 1))
