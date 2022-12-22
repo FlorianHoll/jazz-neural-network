@@ -24,7 +24,7 @@ class GreedySearch:
         model: keras.Model,
         start_input: np.ndarray,
         nr_measures: int,
-        chords: List[Chord] = None,
+        chords: np.ndarray = None,
         seq_length: int = 8,
     ) -> None:
         """Initialize the BeamSearch."""
@@ -33,15 +33,6 @@ class GreedySearch:
         self.seq_length = seq_length
         self.nr_measures = nr_measures
         self.chords = chords
-        if chords:
-            self.chords_array = np.array(
-                [
-                    [chord.neural_net_representation for chord in self.chords],
-                    [chord.duration for chord in self.chords],
-                    [chord.offset for chord in self.chords],
-                    np.cumsum([chord.duration for chord in self.chords]),
-                ]
-            )
 
     @property
     def cumulated_duration_of_predicted_notes(self):
@@ -121,8 +112,8 @@ class MelodyGreedySearch(GreedySearch):
         previous_notes = list(
             np.expand_dims(self.composition[:, -self.seq_length :], 1)
         )
-        relevant_chords = self.chords_array[
-            0, self.chords_array[3, :] <= self.cumulated_duration_of_predicted_notes
+        relevant_chords = self.chords[
+            0, self.chords[3, :] <= self.cumulated_duration_of_predicted_notes
         ]
         chord = Chord.from_neural_net_representation(relevant_chords[-1])
         current_chord = list(np.expand_dims(chord.pitch_neural_net_representation, 1))
