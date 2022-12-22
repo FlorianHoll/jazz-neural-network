@@ -359,6 +359,11 @@ class SongParser:
 class HarmonySongParser(SongParser):
     """Parse a song's harmony."""
 
+    def parse(self):
+        """Parse the song."""
+        super().parse()
+        self._calculate_chord_durations()
+
     def _parse_one_measure(self, measure: bs4.element.Tag):
         """Parse the harmony of one measure.
 
@@ -404,7 +409,6 @@ class HarmonySongParser(SongParser):
         :return: The augmented, i.e. transposed and slided, data, with
             all information that the neural net needs.
         """
-        self._calculate_chord_durations()
         attributes_to_augment = [
             "neural_net_representation",
             "duration",
